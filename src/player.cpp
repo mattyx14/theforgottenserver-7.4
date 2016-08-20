@@ -1915,7 +1915,6 @@ void Player::death(Creature* _lastHitCreature)
 
 		sendStats();
 		sendSkills();
-		sendReLoginWindow();
 
 		health = healthMax;
 		mana = manaMax;

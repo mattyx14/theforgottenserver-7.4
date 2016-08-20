@@ -1032,13 +1032,6 @@ void ProtocolGame::sendAddMarker(const Position& pos, uint8_t markType, const st
 	writeToOutputBuffer(msg);
 }
 
-void ProtocolGame::sendReLoginWindow()
-{
-	NetworkMessage msg;
-	msg.addByte(0x28);
-	writeToOutputBuffer(msg);
-}
-
 void ProtocolGame::sendStats()
 {
 	NetworkMessage msg;
@@ -1254,12 +1247,6 @@ void ProtocolGame::sendToChannel(const Creature* creature, SpeakClasses type, co
 		type = TALKTYPE_CHANNEL_R1;
 	} else {
 		msg.addString(creature->getName());
-		//Add level only for players
-		if (const Player* speaker = creature->getPlayer()) {
-			msg.add<uint16_t>(speaker->getLevel());
-		} else {
-			msg.add<uint16_t>(0x00);
-		}
 	}
 
 	msg.addByte(type);
@@ -1276,7 +1263,6 @@ void ProtocolGame::sendPrivateMessage(const Player* speaker, SpeakClasses type, 
 	msg.add<uint32_t>(++statementId);
 	if (speaker) {
 		msg.addString(speaker->getName());
-		msg.add<uint16_t>(speaker->getLevel());
 	} else {
 		msg.add<uint32_t>(0x00);
 	}
@@ -1683,14 +1669,7 @@ void ProtocolGame::sendTextWindow(uint32_t windowTextId, Item* item, uint16_t ma
 	if (!writer.empty()) {
 		msg.addString(writer);
 	} else {
-		msg.add<uint16_t>(0x00);
-	}
-
-	time_t writtenDate = item->getDate();
-	if (writtenDate != 0) {
-		msg.addString(formatDateShort(writtenDate));
-	} else {
-		msg.add<uint16_t>(0x00);
+		msg.addString("");
 	}
 
 	writeToOutputBuffer(msg);
@@ -1704,8 +1683,7 @@ void ProtocolGame::sendTextWindow(uint32_t windowTextId, uint32_t itemId, const 
 	msg.addItem(itemId, 1);
 	msg.add<uint16_t>(text.size());
 	msg.addString(text);
-	msg.add<uint16_t>(0x00);
-	msg.add<uint16_t>(0x00);
+	msg.addString("");
 	writeToOutputBuffer(msg);
 }
 
@@ -1728,17 +1706,17 @@ void ProtocolGame::sendOutfitWindow()
 
 	switch (player->getSex()) {
 	case PLAYERSEX_FEMALE:
-		msg.add<uint16_t>(137);
+		msg.add<uint16_t>(136);
 		if (player->isPremium())
-			msg.add<uint16_t>(145);
+			msg.add<uint16_t>(142);
 		else
-			msg.add<uint16_t>(140);
+			msg.add<uint16_t>(139);
 
 		break;
 	case PLAYERSEX_MALE:
 		msg.add<uint16_t>(128);
 		if (player->isPremium())
-			msg.add<uint16_t>(136);
+			msg.add<uint16_t>(134);
 		else
 			msg.add<uint16_t>(131);
 
@@ -1750,7 +1728,7 @@ void ProtocolGame::sendOutfitWindow()
 		break;
 	default:
 		msg.add<uint16_t>(128);
-		msg.add<uint16_t>(137);
+		msg.add<uint16_t>(134);
 	}
 	writeToOutputBuffer(msg);
 }

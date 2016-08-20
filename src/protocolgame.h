@@ -171,7 +171,6 @@ class ProtocolGame final : public Protocol
 		void sendStats();
 		void sendTextMessage(MessageClasses mclass, const std::string& message);
 		void sendTextMessage(const TextMessage& message);
-		void sendReLoginWindow();
 
 		void sendAddMarker(const Position& pos, uint8_t markType, const std::string& desc);
 

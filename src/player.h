@@ -829,11 +829,6 @@ class Player final : public Creature, public Cylinder
 				client->sendTextMessage(message);
 			}
 		}
-		void sendReLoginWindow() const {
-			if (client) {
-				client->sendReLoginWindow();
-			}
-		}
 		void sendTextWindow(Item* item, uint16_t maxlen, bool canWrite) const {
 			if (client) {
 				client->sendTextWindow(windowTextId, item, maxlen, canWrite);
