@@ -15,7 +15,7 @@
 		<flag targetdistance="1"/>
 		<flag staticattack="90"/>
 		<flag runonhealth="0"/>
-	</flags><script><event name="TaskDeath"/></script>
+	</flags>
 	<attacks>
 		<attack name="melee" interval="2000" skill="44" attack="30"/>
 	</attacks>

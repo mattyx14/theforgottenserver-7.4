@@ -15,7 +15,7 @@
 	<flag canpushcreatures="1"/>
 	<flag targetdistance="1"/>
 	<flag runonhealth="2500"/>
-</flags><script><event name="TaskDeath"/></script>
+</flags>
 
 <attacks>
 	<attack name="melee" interval="2000" skill="190" attack="199"/>
