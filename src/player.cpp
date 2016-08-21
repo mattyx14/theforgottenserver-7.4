@@ -220,30 +220,6 @@ std::string Player::getDescription(int32_t lookDistance) const
 		}
 	}
 
-	if (party) {
-		if (lookDistance == -1) {
-			s << " Your party has ";
-		} else if (sex == PLAYERSEX_FEMALE) {
-			s << " She is in a party with ";
-		} else {
-			s << " He is in a party with ";
-		}
-
-		size_t memberCount = party->getMemberCount() + 1;
-		if (memberCount == 1) {
-			s << "1 member and ";
-		} else {
-			s << memberCount << " members and ";
-		}
-
-		size_t invitationCount = party->getInvitationCount();
-		if (invitationCount == 1) {
-			s << "1 pending invitation.";
-		} else {
-			s << invitationCount << " pending invitations.";
-		}
-	}
-
 	if (guild) {
 		const GuildRank* rank = guild->getRankByLevel(guildLevel);
 		if (rank) {
@@ -1549,8 +1525,6 @@ void Player::addExperience(Creature* source, uint64_t exp, bool sendText/* = fal
 	}
 
 	if (prevLevel != level) {
-		health = healthMax;
-		mana = manaMax;
 
 		updateBaseSpeed();
 		setBaseSpeed(getBaseSpeed());

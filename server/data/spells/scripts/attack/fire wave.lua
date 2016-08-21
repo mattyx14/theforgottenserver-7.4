@@ -1,16 +1,25 @@
-local combat = Combat()
-combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_FIREDAMAGE)
-combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_HITBYFIRE)
-combat:setArea(createCombatArea(AREA_WAVE4, AREADIAGONAL_WAVE4))
+local combat = createCombatObject()
+setCombatParam(combat, COMBAT_PARAM_TYPE, COMBAT_FIREDAMAGE)
+setCombatParam(combat, COMBAT_PARAM_EFFECT, CONST_ME_HITBYFIRE)
 
-function onGetFormulaValues(player, level, maglevel)
-	local min = (level / 5) + (maglevel * 1.2) + 7
-	local max = (level / 5) + (maglevel * 2) + 12
-	return -min, -max
+local area = createCombatArea(AREA_WAVE4, AREADIAGONAL_WAVE4)
+setCombatArea(combat, area)
+
+function onGetFormulaValues(cid, level, maglevel)
+	min = -((level * 2) + (maglevel * 3)) * 0.25
+	max = -((level * 2) + (maglevel * 3)) * 0.6
+	return min, max
 end
 
-combat:setCallback(CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
+setCombatCallback(combat, CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
 
-function onCastSpell(creature, variant)
-	return combat:execute(creature, variant)
+function onCastSpell(cid, var)
+	-- check for stairHop delay
+	if not getCreatureCondition(cid, CONDITION_PACIFIED) then
+		return doCombat(cid, combat, var)
+	else
+		cid:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
+		cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+		return false
+	end
 end

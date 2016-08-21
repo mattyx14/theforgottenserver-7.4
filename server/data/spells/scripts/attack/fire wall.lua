@@ -1,10 +1,19 @@
-local combat = Combat()
-combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_FIREDAMAGE)
-combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_HITBYFIRE)
-combat:setParameter(COMBAT_PARAM_DISTANCEEFFECT, CONST_ANI_FIRE)
-combat:setParameter(COMBAT_PARAM_CREATEITEM, ITEM_FIREFIELD_PVP_FULL)
-combat:setArea(createCombatArea(AREA_WALLFIELD, AREADIAGONAL_WALLFIELD))
+local combat = createCombatObject()
+setCombatParam(combat, COMBAT_PARAM_TYPE, COMBAT_FIREDAMAGE)
+setCombatParam(combat, COMBAT_PARAM_EFFECT, CONST_ME_HITBYFIRE)
+setCombatParam(combat, COMBAT_PARAM_DISTANCEEFFECT, CONST_ANI_FIRE)
+setCombatParam(combat, COMBAT_PARAM_CREATEITEM, ITEM_FIREFIELD_PVP_FULL)
 
-function onCastSpell(creature, variant)
-	return combat:execute(creature, variant)
+local area = createCombatArea(AREA_WALLFIELD, AREADIAGONAL_WALLFIELD)
+setCombatArea(combat, area)
+
+function onCastSpell(cid, var, isHotkey)
+	-- check for stairHop delay
+	if not getCreatureCondition(cid, CONDITION_PACIFIED) then
+		return doCombat(cid, combat, var)
+	else
+		cid:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
+		cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+		return false
+	end
 end

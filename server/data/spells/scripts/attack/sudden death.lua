@@ -1,16 +1,41 @@
-local combat = Combat()
-combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_PHYSICALDAMAGE)
-combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_MORTAREA)
-combat:setParameter(COMBAT_PARAM_DISTANCEEFFECT, CONST_ANI_DEATH)
+local combat = createCombatObject()
+setCombatParam(combat, COMBAT_PARAM_TYPE, COMBAT_PHYSICALDAMAGE)
+setCombatParam(combat, COMBAT_PARAM_EFFECT, CONST_ME_MORTAREA)
+setCombatParam(combat, COMBAT_PARAM_DISTANCEEFFECT, CONST_ANI_DEATH)
 
-function onGetFormulaValues(player, level, maglevel)
-	local min = (level / 5) + (maglevel * 4.3) + 32
-	local max = (level / 5) + (maglevel * 7.4) + 48
-	return -min, -max
+function onGetFormulaValues(cid, level, maglevel)
+	min = -((level * 2) + (maglevel * 3)) * 1.3
+	max = -((level * 2) + (maglevel * 3)) * 1.7
+	return min, max
 end
 
-combat:setCallback(CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
+setCombatCallback(combat, CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
 
-function onCastSpell(creature, variant)
-	return combat:execute(creature, variant)
+function onCastSpell(cid, var, isHotkey)
+	-- check for stairHop delay
+	if not getCreatureCondition(cid, CONDITION_PACIFIED) then
+		-- check making it able to shot invisible creatures
+		if Tile(var:getPosition()):getTopCreature() then
+			return doCombat(cid, combat, var)
+		else
+			cid:sendCancelMessage("You can only use this rune on creatures.")
+			cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+			return false
+		end
+	else
+		-- attack players even with stairhop delay
+		if Tile(var:getPosition()):getTopCreature() then
+			if Tile(var:getPosition()):getTopCreature():isPlayer() then
+				return doCombat(cid, combat, var)
+			else
+				cid:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
+				cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+				return false
+			end
+		else
+			cid:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
+			cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+			return false
+		end
+	end
 end

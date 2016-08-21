@@ -1,16 +1,22 @@
-local combat = Combat()
-combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_PHYSICALDAMAGE)
-combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_MORTAREA)
-combat:setParameter(COMBAT_PARAM_DISTANCEEFFECT, CONST_ANI_DEATH)
+local combat = createCombatObject()
+setCombatParam(combat, COMBAT_PARAM_TYPE, COMBAT_PHYSICALDAMAGE)
+setCombatParam(combat, COMBAT_PARAM_EFFECT, CONST_ME_MORTAREA)
 
-function onGetFormulaValues(player, level, maglevel)
-	local min = (level / 5) + (maglevel * 1.4) + 8
-	local max = (level / 5) + (maglevel * 2.2) + 14
-	return -min, -max
+function onGetFormulaValues(cid, level, maglevel)
+	min = -((level * 2) + (maglevel * 3)) * 0.2
+	max = -((level * 2) + (maglevel * 3)) * 0.5
+	return min, max
 end
 
-combat:setCallback(CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
+setCombatCallback(combat, CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
 
-function onCastSpell(creature, variant)
-	return combat:execute(creature, variant)
+function onCastSpell(cid, var)
+	-- check for stairHop delay
+	if not getCreatureCondition(cid, CONDITION_PACIFIED) then
+		return doCombat(cid, combat, var)
+	else
+		cid:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
+		cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+		return false
+	end
 end

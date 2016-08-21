@@ -1,8 +1,7 @@
-function onCastSpell(creature, variant)
-	local position = Variant.getPosition(variant)
+function onCastSpell(creature, var, isHotkey)
+	local position = variantToPosition(var)
 	local tile = Tile(position)
 	local field = tile and tile:getItemByType(ITEM_TYPE_MAGICFIELD)
-
 	if field and isInArray(FIELDS, field:getId()) then
 		field:remove()
 		position:sendMagicEffect(CONST_ME_POFF)

@@ -1,18 +1,31 @@
-local combat = Combat()
-combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_HEALING)
-combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_MAGIC_BLUE)
-combat:setParameter(COMBAT_PARAM_DISPEL, CONDITION_PARALYZE)
-combat:setParameter(COMBAT_PARAM_TARGETCASTERORTOPMOST, true)
-combat:setParameter(COMBAT_PARAM_AGGRESSIVE, false)
+local combat = createCombatObject()
+setCombatParam(combat, COMBAT_PARAM_TYPE, COMBAT_HEALING)
+setCombatParam(combat, COMBAT_PARAM_EFFECT, CONST_ME_MAGIC_BLUE)
+setCombatParam(combat, COMBAT_PARAM_AGGRESSIVE, 0)
+setCombatParam(combat, COMBAT_PARAM_TARGETCASTERORTOPMOST, 1)
+setCombatParam(combat, COMBAT_PARAM_DISPEL, CONDITION_PARALYZE)
 
-function onGetFormulaValues(player, level, maglevel)
-	local min = (level / 5) + (maglevel * 3.2) + 20
-	local max = (level / 5) + (maglevel * 5.4) + 40
+function onGetFormulaValues(cid, level, maglevel)
+	if (((level * 2) + (maglevel * 3)) * 0.335) < 35 then
+		min = 35
+	else
+		min = ((level * 2) + (maglevel * 3)) * 0.335
+	end
+	if (((level * 2) + (maglevel * 3)) * 0.58) < 45 then
+		max = 45
+	else
+		max = ((level * 2) + (maglevel * 3)) * 0.58
+	end
 	return min, max
 end
 
-combat:setCallback(CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
+setCombatCallback(combat, CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
 
-function onCastSpell(creature, variant)
-	return combat:execute(creature, variant)
+function onCastSpell(cid, var, isHotkey)
+	if Tile(var:getPosition()):getTopCreature() then
+		return doCombat(cid, combat, var)
+	else
+		cid:sendCancelMessage("You can only use this rune on creatures.")
+		cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+	end
 end

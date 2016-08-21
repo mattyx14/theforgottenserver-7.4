@@ -3535,7 +3535,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 							message.text = "You lose " + damageString + " mana due to an attack by " + attacker->getNameDescription() + '.';
 						}
 					} else {
-						message.type = MESSAGE_STATUS_SMALL;
+						message.type = MESSAGE_EVENT_DEFAULT;
 						message.text = spectatorMessage;
 					}
 					tmpPlayer->sendTextMessage(message);
@@ -3652,7 +3652,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 						message.text = "You lose " + damageString + " due to an attack by " + attacker->getNameDescription() + '.';
 					}
 				} else {
-					message.type = MESSAGE_STATUS_SMALL;
+					message.type = MESSAGE_EVENT_DEFAULT;
 					// TODO: Avoid copying spectatorMessage everytime we send to a spectator
 					message.text = spectatorMessage;
 				}
@@ -3752,7 +3752,7 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, int32_t manaCh
 					message.text = "You lose " + damageString + " mana due to an attack by " + attacker->getNameDescription() + '.';
 				}
 			} else {
-				message.type = MESSAGE_STATUS_SMALL;
+				message.type = MESSAGE_EVENT_DEFAULT;
 				message.text = spectatorMessage;
 			}
 			tmpPlayer->sendTextMessage(message);
