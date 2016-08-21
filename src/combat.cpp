@@ -576,13 +576,15 @@ void Combat::combatTileEffects(const SpectatorVec& list, Creature* caster, Tile*
 					if (itemId == ITEM_FIREFIELD_PVP_FULL) {
 						itemId = ITEM_FIREFIELD_NOPVP;
 					} else if (itemId == ITEM_POISONFIELD_PVP) {
-						itemId = ITEM_POISONFIELD_NOPVP;
-					} else if (itemId == ITEM_ENERGYFIELD_PVP) {
-						itemId = ITEM_ENERGYFIELD_NOPVP;
+itemId = ITEM_POISONFIELD_NOPVP;
 					}
-				} else if (itemId == ITEM_FIREFIELD_PVP_FULL || itemId == ITEM_POISONFIELD_PVP || itemId == ITEM_ENERGYFIELD_PVP) {
-					casterPlayer->addInFightTicks();
+ else if (itemId == ITEM_ENERGYFIELD_PVP) {
+	 itemId = ITEM_ENERGYFIELD_NOPVP;
+ }
 				}
+ else if (itemId == ITEM_FIREFIELD_PVP_FULL || itemId == ITEM_POISONFIELD_PVP || itemId == ITEM_ENERGYFIELD_PVP) {
+	 casterPlayer->addInFightTicks();
+ }
 			}
 		}
 
@@ -594,7 +596,8 @@ void Combat::combatTileEffects(const SpectatorVec& list, Creature* caster, Tile*
 		ReturnValue ret = g_game.internalAddItem(tile, item);
 		if (ret == RETURNVALUE_NOERROR) {
 			g_game.startDecay(item);
-		} else {
+		}
+		else {
 			delete item;
 		}
 	}
@@ -639,7 +642,8 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 
 	if (caster) {
 		getCombatArea(caster->getPosition(), pos, area, tileList);
-	} else {
+	}
+	else {
 		getCombatArea(pos, pos, area, tileList);
 	}
 
@@ -666,6 +670,8 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 	const int32_t rangeY = maxY + Map::maxViewportY;
 	g_game.map.getSpectators(list, pos, true, true, rangeX, rangeX, rangeY, rangeY);
 
+	bool bContinue = true;
+
 	for (Tile* tile : tileList) {
 		if (canDoCombat(caster, tile, params.aggressive) != RETURNVALUE_NOERROR) {
 			continue;
@@ -675,11 +681,17 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 			const Creature* topCreature = tile->getTopCreature();
 			for (Creature* creature : *creatures) {
 				if (params.targetCasterOrTopMost) {
-					if (caster && caster->getTile() == tile) {
-						if (creature != caster) {
-							continue;
+					if (!g_config.getBoolean(ConfigManager::UH_TRAP) &&
+						(caster && caster->getTile() == tile)){
+						if (creature == caster) {
+							bContinue = false;
 						}
-					} else if (creature != topCreature) {
+					}
+					else if (creature == tile->getBottomCreature()) {
+						bContinue = false;
+					}
+
+					if (bContinue) {
 						continue;
 					}
 				}
