@@ -104,7 +104,6 @@ bool Tile::hasHeight(uint32_t n) const
 int32_t Tile::getHeight() const
 {
 	uint32_t height = 0;
-	Item* iiItem = NULL;
 	if (const TileItemVector* items = getItemList()) {
 		for (const Item* item : *items) {
 			if (item->hasProperty(CONST_PROP_HASHEIGHT)) {
