@@ -34,7 +34,9 @@
 #include "waitlist.h"
 #include "ban.h"
 #include "scheduler.h"
+#include "databasetasks.h"
 
+extern Game g_game;
 extern ConfigManager g_config;
 extern Actions actions;
 extern CreatureEvents* g_creatureEvents;
@@ -67,8 +69,8 @@ void ProtocolGame::release()
 void ProtocolGame::login(const std::string& name, uint32_t accountId, OperatingSystem_t operatingSystem)
 {
 	//dispatcher thread
-	Player* _player = g_game.getPlayerByName(name);
-	if (!_player || g_config.getBoolean(ConfigManager::ALLOW_CLONES)) {
+	Player* foundPlayer = g_game.getPlayerByName(name);
+	if (!foundPlayer || g_config.getBoolean(ConfigManager::ALLOW_CLONES)) {
 		player = new Player(getThis());
 		player->setName(name);
 
@@ -163,13 +165,13 @@ void ProtocolGame::login(const std::string& name, uint32_t accountId, OperatingS
 			return;
 		}
 
-		if (_player->client) {
-			_player->disconnect();
-			_player->isConnecting = true;
+		if (foundPlayer->client) {
+			foundPlayer->disconnect();
+			foundPlayer->isConnecting = true;
 
-			eventConnect = g_scheduler.addEvent(createSchedulerTask(1000, std::bind(&ProtocolGame::connect, getThis(), _player->getID(), operatingSystem)));
+			eventConnect = g_scheduler.addEvent(createSchedulerTask(1000, std::bind(&ProtocolGame::connect, getThis(), foundPlayer->getID(), operatingSystem)));
 		} else {
-			connect(_player->getID(), operatingSystem);
+			connect(foundPlayer->getID(), operatingSystem);
 		}
 	}
 	OutputMessagePool::getInstance().addProtocolToAutosend(shared_from_this());
@@ -179,8 +181,8 @@ void ProtocolGame::connect(uint32_t playerId, OperatingSystem_t operatingSystem)
 {
 	eventConnect = 0;
 
-	Player* _player = g_game.getPlayerByID(playerId);
-	if (!_player || _player->client) {
+	Player* foundPlayer = g_game.getPlayerByID(playerId);
+	if (!foundPlayer || foundPlayer->client) {
 		disconnectClient("You are already logged in.");
 		return;
 	}
@@ -191,7 +193,7 @@ void ProtocolGame::connect(uint32_t playerId, OperatingSystem_t operatingSystem)
 		return;
 	}
 
-	player = _player;
+	player = foundPlayer;
 	player->incrementReferenceCounter();
 
 	g_chat->removeUserFromAllChannels(*player);
@@ -694,7 +696,6 @@ void ProtocolGame::parseSetOutfit(NetworkMessage& msg)
 	newOutfit.lookBody = msg.getByte();
 	newOutfit.lookLegs = msg.getByte();
 	newOutfit.lookFeet = msg.getByte();
-
 	addGameTask(&Game::playerChangeOutfit, player->getID(), newOutfit);
 }
 
@@ -1022,29 +1023,10 @@ void ProtocolGame::sendCreatureSquare(const Creature* creature, SquareColor_t co
 	writeToOutputBuffer(msg);
 }
 
-void ProtocolGame::sendAddMarker(const Position& pos, uint8_t markType, const std::string& desc)
-{
-	NetworkMessage msg;
-	msg.addByte(0xDD);
-	msg.addPosition(pos);
-	msg.addByte(markType);
-	msg.addString(desc);
-	writeToOutputBuffer(msg);
-}
-
 void ProtocolGame::sendStats()
 {
 	NetworkMessage msg;
 	AddPlayerStats(msg);
-	writeToOutputBuffer(msg);
-}
-
-void ProtocolGame::sendTextMessage(MessageClasses mclass, const std::string& message)
-{
-	NetworkMessage msg;
-	msg.addByte(0xB4);
-	msg.addByte(mclass);
-	msg.addString(message);
 	writeToOutputBuffer(msg);
 }
 
@@ -1089,10 +1071,11 @@ void ProtocolGame::sendChannelsDialog()
 	writeToOutputBuffer(msg);
 }
 
-void ProtocolGame::sendChannel(uint16_t channelId, const std::string& channelName, const UsersMap*, const InvitedMap*)
+void ProtocolGame::sendChannel(uint16_t channelId, const std::string& channelName)
 {
 	NetworkMessage msg;
 	msg.addByte(0xAC);
+
 	msg.add<uint16_t>(channelId);
 	msg.addString(channelName);
 	writeToOutputBuffer(msg);
@@ -1126,7 +1109,7 @@ void ProtocolGame::sendContainer(uint8_t cid, const Container* container, bool h
 
 	msg.addByte(cid);
 
-	msg.addItem(container);
+	msg.addItemId(container);
 	msg.addString(container->getName());
 
 	msg.addByte(container->capacity());
@@ -1140,7 +1123,6 @@ void ProtocolGame::sendContainer(uint8_t cid, const Container* container, bool h
 	for (ItemDeque::const_iterator it = itemList.begin() + firstIndex, end = itemList.end(); i < 0xFF && it != end; ++it, ++i) {
 		msg.addItem(*it);
 	}
-
 	writeToOutputBuffer(msg);
 }
 
@@ -1218,10 +1200,18 @@ void ProtocolGame::sendCreatureSay(const Creature* creature, SpeakClasses type, 
 {
 	NetworkMessage msg;
 	msg.addByte(0xAA);
+	msg.add<uint32_t>(0);
 
-	static uint32_t statementId = 0;
-	msg.add<uint32_t>(++statementId);
-	msg.addString(player->getName());
+	if (type != TALKTYPE_CHANNEL_R2) {
+		if (type != TALKTYPE_RVR_ANSWER) {
+			msg.addString(creature->getName());
+		} else {
+			msg.addString("Gamemaster");
+		}
+	} else {
+		msg.addString("");
+	}
+
 	msg.addByte(type);
 	if (pos) {
 		msg.addPosition(*pos);
@@ -1237,13 +1227,10 @@ void ProtocolGame::sendToChannel(const Creature* creature, SpeakClasses type, co
 {
 	NetworkMessage msg;
 	msg.addByte(0xAA);
+	msg.add<uint32_t>(0);
 
-	static uint32_t statementId = 0;
-	msg.add<uint32_t>(++statementId);
-	if (!creature) {
-		msg.add<uint32_t>(0x00);
-	} else if (type == TALKTYPE_CHANNEL_R2) {
-		msg.add<uint32_t>(0x00);
+	if (type == TALKTYPE_CHANNEL_R2) {
+		msg.addString("");
 		type = TALKTYPE_CHANNEL_R1;
 	} else {
 		msg.addString(creature->getName());
@@ -1343,14 +1330,6 @@ void ProtocolGame::sendCreatureHealth(const Creature* creature)
 	} else {
 		msg.addByte(std::ceil((static_cast<double>(creature->getHealth()) / std::max<int32_t>(creature->getMaxHealth(), 1)) * 100));
 	}
-	writeToOutputBuffer(msg);
-}
-
-void ProtocolGame::sendFYIBox(const std::string& message)
-{
-	NetworkMessage msg;
-	msg.addByte(0x15);
-	msg.addString(message);
 	writeToOutputBuffer(msg);
 }
 
@@ -1512,33 +1491,10 @@ void ProtocolGame::sendAddCreature(const Creature* creature, const Position& pos
 	sendCreatureLight(creature);
 
 	const std::forward_list<VIPEntry>& vipEntries = IOLoginData::getVIPEntries(player->getAccount());
+	for (const VIPEntry& entry : vipEntries) {
+		Player* vipPlayer = g_game.getPlayerByGUID(entry.guid);
 
-	if (player->isAccessPlayer()) {
-		for (const VIPEntry& entry : vipEntries) {
-			VipStatus_t vipStatus;
-
-			Player* vipPlayer = g_game.getPlayerByGUID(entry.guid);
-			if (!vipPlayer) {
-				vipStatus = VIPSTATUS_OFFLINE;
-			} else {
-				vipStatus = VIPSTATUS_ONLINE;
-			}
-
-			sendVIP(entry.guid, entry.name, vipStatus);
-		}
-	} else {
-		for (const VIPEntry& entry : vipEntries) {
-			VipStatus_t vipStatus;
-
-			Player* vipPlayer = g_game.getPlayerByGUID(entry.guid);
-			if (!vipPlayer || vipPlayer->isInGhostMode()) {
-				vipStatus = VIPSTATUS_OFFLINE;
-			} else {
-				vipStatus = VIPSTATUS_ONLINE;
-			}
-
-			sendVIP(entry.guid, entry.name, vipStatus);
-		}
+		sendVIP(entry.guid, entry.name, (vipPlayer && (!vipPlayer->isInGhostMode() || player->isAccessPlayer())));
 	}
 
 	player->sendIcons();
@@ -1654,7 +1610,7 @@ void ProtocolGame::sendTextWindow(uint32_t windowTextId, Item* item, uint16_t ma
 	NetworkMessage msg;
 	msg.addByte(0x96);
 	msg.add<uint32_t>(windowTextId);
-	msg.addItem(item);
+	msg.addItemId(item);
 
 	if (canWrite) {
 		msg.add<uint16_t>(maxlen);
@@ -1669,7 +1625,14 @@ void ProtocolGame::sendTextWindow(uint32_t windowTextId, Item* item, uint16_t ma
 	if (!writer.empty()) {
 		msg.addString(writer);
 	} else {
-		msg.addString("");
+		msg.add<uint16_t>(0x00);
+	}
+
+	time_t writtenDate = item->getDate();
+	if (writtenDate != 0) {
+		msg.addString(formatDateShort(writtenDate));
+	} else {
+		msg.add<uint16_t>(0x00);
 	}
 
 	writeToOutputBuffer(msg);
@@ -1683,7 +1646,8 @@ void ProtocolGame::sendTextWindow(uint32_t windowTextId, uint32_t itemId, const 
 	msg.addItem(itemId, 1);
 	msg.add<uint16_t>(text.size());
 	msg.addString(text);
-	msg.addString("");
+	msg.add<uint16_t>(0x00);
+	msg.add<uint16_t>(0x00);
 	writeToOutputBuffer(msg);
 }
 
@@ -1701,53 +1665,28 @@ void ProtocolGame::sendOutfitWindow()
 {
 	NetworkMessage msg;
 	msg.addByte(0xC8);
-
-	AddOutfit(msg, player->getDefaultOutfit());
-
-	switch (player->getSex()) {
-	case PLAYERSEX_FEMALE:
-		msg.add<uint16_t>(136);
-		if (player->isPremium())
-			msg.add<uint16_t>(142);
-		else
-			msg.add<uint16_t>(139);
-
-		break;
-	case PLAYERSEX_MALE:
-		msg.add<uint16_t>(128);
-		if (player->isPremium())
-			msg.add<uint16_t>(134);
-		else
-			msg.add<uint16_t>(131);
-
-		break;
-	case 2:
-		msg.add<uint16_t>(160);
-		msg.add<uint16_t>(160);
-
-		break;
-	default:
-		msg.add<uint16_t>(128);
-		msg.add<uint16_t>(134);
-	}
+	AddOutfit(msg, player->getCurrentOutfit());
+	msg.add<uint16_t>(player->getSex() % 2 ? 128 : 136);
+	msg.add<uint16_t>(player->isPremium() ? (player->getSex() % 2 ? 134 : 142) : (player->getSex() % 2 ? 131 : 139));
+	player->hasRequestedOutfit(true);
 	writeToOutputBuffer(msg);
 }
 
-void ProtocolGame::sendUpdatedVIPStatus(uint32_t guid, VipStatus_t newStatus)
+void ProtocolGame::sendUpdatedVIPStatus(uint32_t guid, bool online)
 {
 	NetworkMessage msg;
-	msg.addByte(newStatus ? 0xD3 : 0xD4);
+	msg.addByte(online ? 0xD3 : 0xD4);
 	msg.add<uint32_t>(guid);
 	writeToOutputBuffer(msg);
 }
 
-void ProtocolGame::sendVIP(uint32_t guid, const std::string& name, VipStatus_t status)
+void ProtocolGame::sendVIP(uint32_t guid, const std::string& name, bool isOnline)
 {
 	NetworkMessage msg;
 	msg.addByte(0xD2);
 	msg.add<uint32_t>(guid);
 	msg.addString(name);
-	msg.addByte(status);
+	msg.addByte(isOnline ? 0x01 : 0x00);
 	writeToOutputBuffer(msg);
 }
 

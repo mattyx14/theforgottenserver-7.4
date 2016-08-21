@@ -194,7 +194,6 @@ class ItemType
 		uint16_t id;
 		uint16_t clientId;
 		bool stackable;
-		bool isAnimation;
 
 		std::string name;
 		std::string article;
@@ -254,7 +253,6 @@ class ItemType
 
 		bool forceUse;
 		bool hasHeight;
-		bool walkStack;
 		bool blockSolid;
 		bool blockPickupable;
 		bool blockProjectile;

@@ -59,8 +59,8 @@ Player::Player(ProtocolGame_ptr p) :
 	manaMax = 0;
 	manaSpent = 0;
 	soul = 0;
-	guildLevel = 0;
 	guild = nullptr;
+	guildRank = nullptr;
 
 	level = 1;
 	levelPercent = 0;
@@ -134,6 +134,7 @@ Player::Player(ProtocolGame_ptr p) :
 	lastStatsTrainingTime = 0;
 
 	ghostMode = false;
+	requestedOutfit = false;
 
 	inventoryWeight = 0;
 	operatingSystem = CLIENTOS_NONE;
@@ -220,28 +221,49 @@ std::string Player::getDescription(int32_t lookDistance) const
 		}
 	}
 
-	if (guild) {
-		const GuildRank* rank = guild->getRankByLevel(guildLevel);
-		if (rank) {
-			if (lookDistance == -1) {
-				s << " You are ";
-			} else if (sex == PLAYERSEX_FEMALE) {
-				s << " She is ";
-			} else {
-				s << " He is ";
-			}
+	if (party) {
+		if (lookDistance == -1) {
+			s << " Your party has ";
+		} else if (sex == PLAYERSEX_FEMALE) {
+			s << " She is in a party with ";
+		} else {
+			s << " He is in a party with ";
+		}
 
-			s << rank->name << " of the " << guild->getName();
-			if (!guildNick.empty()) {
-				s << " (" << guildNick << ')';
-			}
+		size_t memberCount = party->getMemberCount() + 1;
+		if (memberCount == 1) {
+			s << "1 member and ";
+		} else {
+			s << memberCount << " members and ";
+		}
 
-			size_t memberCount = guild->getMemberCount();
-			if (memberCount == 1) {
-				s << ", which has 1 member, " << guild->getMembersOnline().size() << " of them online.";
-			} else {
-				s << ", which has " << memberCount << " members, " << guild->getMembersOnline().size() << " of them online.";
-			}
+		size_t invitationCount = party->getInvitationCount();
+		if (invitationCount == 1) {
+			s << "1 pending invitation.";
+		} else {
+			s << invitationCount << " pending invitations.";
+		}
+	}
+
+	if (guild && guildRank) {
+		if (lookDistance == -1) {
+			s << " You are ";
+		} else if (sex == PLAYERSEX_FEMALE) {
+			s << " She is ";
+		} else {
+			s << " He is ";
+		}
+
+		s << guildRank->name << " of the " << guild->getName();
+		if (!guildNick.empty()) {
+			s << " (" << guildNick << ')';
+		}
+
+		size_t memberCount = guild->getMemberCount();
+		if (memberCount == 1) {
+			s << ", which has 1 member, " << guild->getMembersOnline().size() << " of them online.";
+		} else {
+			s << ", which has " << memberCount << " members, " << guild->getMembersOnline().size() << " of them online.";
 		}
 	}
 	return s.str();
@@ -381,7 +403,7 @@ void Player::getShieldAndWeapon(const Item*& shield, const Item*& weapon) const
 				break;
 
 			case WEAPON_SHIELD: {
-				if (!shield || item->getDefense() > shield->getDefense()) {
+				if (!shield || (shield && item->getDefense() > shield->getDefense())) {
 					shield = item;
 				}
 				break;
@@ -677,7 +699,7 @@ uint16_t Player::getLookCorpse() const
 	}
 }
 
-void Player::addStorageValue(const uint32_t key, const int32_t value, const bool isLogin/* = false*/)
+void Player::addStorageValue(const uint32_t key, const int32_t value)
 {
 	if (value != -1) {
 		int32_t oldValue;
@@ -825,14 +847,14 @@ void Player::sendPing()
 	}
 }
 
-Item* Player::getWriteItem(uint32_t& _windowTextId, uint16_t& _maxWriteLen)
+Item* Player::getWriteItem(uint32_t& windowTextId, uint16_t& maxWriteLen)
 {
-	_windowTextId = windowTextId;
-	_maxWriteLen = maxWriteLen;
+	windowTextId = this->windowTextId;
+	maxWriteLen = this->maxWriteLen;
 	return writeItem;
 }
 
-void Player::setWriteItem(Item* item, uint16_t _maxWriteLen /*= 0*/)
+void Player::setWriteItem(Item* item, uint16_t maxWriteLen /*= 0*/)
 {
 	windowTextId++;
 
@@ -842,18 +864,18 @@ void Player::setWriteItem(Item* item, uint16_t _maxWriteLen /*= 0*/)
 
 	if (item) {
 		writeItem = item;
-		maxWriteLen = _maxWriteLen;
+		this->maxWriteLen = maxWriteLen;
 		writeItem->incrementReferenceCounter();
 	} else {
 		writeItem = nullptr;
-		maxWriteLen = 0;
+		this->maxWriteLen = 0;
 	}
 }
 
-House* Player::getEditHouse(uint32_t& _windowTextId, uint32_t& _listId)
+House* Player::getEditHouse(uint32_t& windowTextId, uint32_t& listId)
 {
-	_windowTextId = windowTextId;
-	_listId = editListId;
+	windowTextId = this->windowTextId;
+	listId = this->editListId;
 	return editHouse;
 }
 
@@ -944,7 +966,7 @@ void Player::sendRemoveContainerItem(const Container* container, uint16_t slot)
 }
 
 void Player::onUpdateTileItem(const Tile* tile, const Position& pos, const Item* oldItem,
-							  const ItemType& oldType, const Item* newItem, const ItemType& newType)
+                              const ItemType& oldType, const Item* newItem, const ItemType& newType)
 {
 	Creature::onUpdateTileItem(tile, pos, oldItem, oldType, newItem, newType);
 
@@ -960,7 +982,7 @@ void Player::onUpdateTileItem(const Tile* tile, const Position& pos, const Item*
 }
 
 void Player::onRemoveTileItem(const Tile* tile, const Position& pos, const ItemType& iType,
-							  const Item* item)
+                              const Item* item)
 {
 	Creature::onRemoveTileItem(tile, pos, iType, item);
 
@@ -1005,8 +1027,16 @@ void Player::onCreatureAppear(Creature* creature, bool isLogin)
 			guild->addMember(this);
 		}
 
+		int32_t offlineTime;
+		if (getLastLogout() != 0) {
+			// Not counting more than 21 days to prevent overflow when multiplying with 1000 (for milliseconds).
+			offlineTime = std::min<int32_t>(time(nullptr) - getLastLogout(), 86400 * 21);
+		} else {
+			offlineTime = 0;
+		}
+
 		for (Condition* condition : getMuteConditions()) {
-			condition->setTicks(condition->getTicks());
+			condition->setTicks(condition->getTicks() - (offlineTime * 1000));
 			if (condition->getTicks() <= 0) {
 				removeCondition(condition);
 			}
@@ -1216,7 +1246,7 @@ void Player::onSendContainer(const Container* container)
 		return;
 	}
 
-	bool hasParent = container->hasParent();
+	bool hasParent = dynamic_cast<const Container*>(container->getParent()) != nullptr;
 	for (const auto& it : openContainers) {
 		const OpenContainer& openContainer = it.second;
 		if (openContainer.container == container) {
@@ -1493,10 +1523,10 @@ void Player::addExperience(Creature* source, uint64_t exp, bool sendText/* = fal
 
 		std::ostringstream strExp;
 		strExp << exp;
-		g_game.addAnimatedText(strExp.str(), _position, TEXTCOLOR_WHITE_EXP);
+		g_game.addAnimatedText(strExp.str(), position, TEXTCOLOR_WHITE_EXP);
 
 		SpectatorVec list;
-		g_game.map.getSpectators(list, _position, false, true);
+		g_game.map.getSpectators(list, position, false, true);
 		list.erase(this);
 		if (!list.empty()) {
 			message.type = MESSAGE_STATUS_SMALL;
@@ -1525,6 +1555,8 @@ void Player::addExperience(Creature* source, uint64_t exp, bool sendText/* = fal
 	}
 
 	if (prevLevel != level) {
+		health = healthMax;
+		mana = manaMax;
 
 		updateBaseSpeed();
 		setBaseSpeed(getBaseSpeed());
@@ -1575,10 +1607,10 @@ void Player::removeExperience(uint64_t exp, bool sendText/* = false*/)
 
 		std::ostringstream strExp;
 		strExp << lostExp;
-		g_game.addAnimatedText(strExp.str(), _position, TEXTCOLOR_RED);
+		g_game.addAnimatedText(strExp.str(), position, TEXTCOLOR_RED);
 
 		SpectatorVec list;
-		g_game.map.getSpectators(list, _position, false, true);
+		g_game.map.getSpectators(list, position, false, true);
 		list.erase(this);
 		if (!list.empty()) {
 			message.type = MESSAGE_STATUS_SMALL;
@@ -1698,7 +1730,7 @@ bool Player::hasShield() const
 }
 
 BlockType_t Player::blockHit(Creature* attacker, CombatType_t combatType, int32_t& damage,
-							 bool checkDefense /* = false*/, bool checkArmor /* = false*/, bool field /* = false*/)
+                             bool checkDefense /* = false*/, bool checkArmor /* = false*/, bool field /* = false*/)
 {
 	BlockType_t blockType = Creature::blockHit(attacker, combatType, damage, checkDefense, checkArmor, field);
 
@@ -1764,12 +1796,12 @@ uint32_t Player::getIP() const
 	return 0;
 }
 
-void Player::death(Creature* _lastHitCreature)
+void Player::death(Creature* lastHitCreature)
 {
 	loginPosition = town->getTemplePosition();
+	sendTextMessage(MESSAGE_EVENT_ADVANCE, "You are dead.");
 
 	if (skillLoss) {
-
 		//Magic level loss
 		uint64_t sumMana = 0;
 		uint64_t lostMana = 0;
@@ -1865,10 +1897,10 @@ void Player::death(Creature* _lastHitCreature)
 		if (bitset[5]) {
 			Player* lastHitPlayer;
 
-			if (_lastHitCreature) {
-				lastHitPlayer = _lastHitCreature->getPlayer();
+			if (lastHitCreature) {
+				lastHitPlayer = lastHitCreature->getPlayer();
 				if (!lastHitPlayer) {
-					Creature* lastHitMaster = _lastHitCreature->getMaster();
+					Creature* lastHitMaster = lastHitCreature->getMaster();
 					if (lastHitMaster) {
 						lastHitPlayer = lastHitMaster->getPlayer();
 					}
@@ -1932,22 +1964,22 @@ void Player::death(Creature* _lastHitCreature)
 	}
 }
 
-bool Player::dropCorpse(Creature* _lastHitCreature, Creature* mostDamageCreature, bool lastHitUnjustified, bool mostDamageUnjustified)
+bool Player::dropCorpse(Creature* lastHitCreature, Creature* mostDamageCreature, bool lastHitUnjustified, bool mostDamageUnjustified)
 {
 	if (getZone() == ZONE_PVP) {
 		setDropLoot(true);
 		return false;
 	}
-	return Creature::dropCorpse(_lastHitCreature, mostDamageCreature, lastHitUnjustified, mostDamageUnjustified);
+	return Creature::dropCorpse(lastHitCreature, mostDamageCreature, lastHitUnjustified, mostDamageUnjustified);
 }
 
-Item* Player::getCorpse(Creature* _lastHitCreature, Creature* mostDamageCreature)
+Item* Player::getCorpse(Creature* lastHitCreature, Creature* mostDamageCreature)
 {
-	Item* corpse = Creature::getCorpse(_lastHitCreature, mostDamageCreature);
+	Item* corpse = Creature::getCorpse(lastHitCreature, mostDamageCreature);
 	if (corpse && corpse->getContainer()) {
 		std::ostringstream ss;
-		if (_lastHitCreature) {
-			ss << "You recognize " << getNameDescription() << ". " << (getSex() == PLAYERSEX_FEMALE ? "She" : "He") << " was killed by " << _lastHitCreature->getNameDescription() << '.';
+		if (lastHitCreature) {
+			ss << "You recognize " << getNameDescription() << ". " << (getSex() == PLAYERSEX_FEMALE ? "She" : "He") << " was killed by " << lastHitCreature->getNameDescription() << '.';
 		} else {
 			ss << "You recognize " << getNameDescription() << '.';
 		}
@@ -1988,14 +2020,14 @@ void Player::removeList()
 	g_game.removePlayer(this);
 
 	for (const auto& it : g_game.getPlayers()) {
-		it.second->notifyStatusChange(this, VIPSTATUS_OFFLINE);
+		it.second->notifyStatusChange(this, false);
 	}
 }
 
 void Player::addList()
 {
 	for (const auto& it : g_game.getPlayers()) {
-		it.second->notifyStatusChange(this, VIPSTATUS_ONLINE);
+		it.second->notifyStatusChange(this, true);
 	}
 
 	g_game.addPlayer(this);
@@ -2011,7 +2043,7 @@ void Player::kickPlayer(bool displayEffect)
 	}
 }
 
-void Player::notifyStatusChange(Player* loginPlayer, VipStatus_t status)
+void Player::notifyStatusChange(Player* loginPlayer, bool online)
 {
 	if (!client) {
 		return;
@@ -2022,7 +2054,7 @@ void Player::notifyStatusChange(Player* loginPlayer, VipStatus_t status)
 		return;
 	}
 
-	client->sendUpdatedVIPStatus(loginPlayer->guid, status);
+	client->sendUpdatedVIPStatus(loginPlayer->guid, online);
 }
 
 bool Player::removeVIP(uint32_t vipGuid)
@@ -2035,7 +2067,7 @@ bool Player::removeVIP(uint32_t vipGuid)
 	return true;
 }
 
-bool Player::addVIP(uint32_t vipGuid, const std::string& vipName, VipStatus_t status)
+bool Player::addVIP(uint32_t vipGuid, const std::string& vipName, bool online)
 {
 	if (guid == vipGuid) {
 		sendTextMessage(MESSAGE_STATUS_SMALL, "You cannot add yourself.");
@@ -2053,9 +2085,9 @@ bool Player::addVIP(uint32_t vipGuid, const std::string& vipName, VipStatus_t st
 		return false;
 	}
 
-	IOLoginData::addVIPEntry(accountNumber, vipGuid);
+	IOLoginData::addVIPEntry(accountNumber, vipGuid, "", 0, false);
 	if (client) {
-		client->sendVIP(vipGuid, vipName, status);
+		client->sendVIP(vipGuid, vipName, online);
 	}
 	return true;
 }
@@ -2071,6 +2103,17 @@ bool Player::addVIPInternal(uint32_t vipGuid)
 	}
 
 	return VIPList.insert(vipGuid).second;
+}
+
+bool Player::editVIP(uint32_t vipGuid, const std::string& description, uint32_t icon, bool notify)
+{
+	auto it = VIPList.find(vipGuid);
+	if (it == VIPList.end()) {
+		return false; // player is not in VIP
+	}
+
+	IOLoginData::editVIPEntry(accountNumber, vipGuid, description, icon, notify);
+	return true;
 }
 
 //close container and its child containers
@@ -2437,7 +2480,7 @@ Cylinder* Player::queryDestination(int32_t& index, const Thing& thing, Item** de
 			return this;
 		}
 
-		bool autoStack = !((flags & FLAG_IGNOREAUTOSTACK) == FLAG_IGNOREAUTOSTACK);
+		bool autoStack = (g_config.getBoolean(ConfigManager::AUTO_STACK_ITEMS) && !((flags & FLAG_IGNOREAUTOSTACK) == FLAG_IGNOREAUTOSTACK));
 		bool isStackable = item->isStackable();
 
 		std::vector<Container*> containers;
@@ -2917,6 +2960,19 @@ bool Player::setAttackedCreature(Creature* creature)
 	}
 
 	if (creature) {
+		if (Monster* monster = creature->getMonster()) {
+			if (monster->isSummon()) {
+				if (Player* owner = monster->getMaster()->getPlayer()) {
+					if (owner != const_cast<Player*>(this)) {
+						addAttacked(owner);
+						addInFightTicks(true);
+						if (skull == SKULL_NONE && owner->skull == SKULL_NONE) {
+							setSkull(SKULL_WHITE);
+						}
+					}
+				}
+			}
+		}
 		g_dispatcher.addTask(createTask(std::bind(&Game::checkCreatureAttack, &g_game, getID())));
 	}
 	return true;
@@ -3448,7 +3504,7 @@ void Player::addUnjustifiedDead(const Player* attacked)
 		return;
 	}
 
-	sendTextMessage(MESSAGE_EVENT_ADVANCE, "Warning! The murder of " + attacked->getName() + " was not justified.");
+	sendTextMessage(MESSAGE_STATUS_WARNING, "Warning! The murder of " + attacked->getName() + " was not justified.");
 
 	skullTicks += g_config.getNumber(ConfigManager::FRAG_TIME);
 
@@ -3875,7 +3931,7 @@ void Player::setGuild(Guild* guild)
 
 	this->guildNick.clear();
 	this->guild = nullptr;
-	this->guildLevel = 0;
+	this->guildRank = nullptr;
 
 	if (guild) {
 		const GuildRank* rank = guild->getRankByLevel(1);
@@ -3884,7 +3940,7 @@ void Player::setGuild(Guild* guild)
 		}
 
 		this->guild = guild;
-		this->guildLevel = 1;
+		this->guildRank = rank;
 		guild->addMember(this);
 	}
 

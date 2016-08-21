@@ -19,6 +19,8 @@
 
 #include "otpch.h"
 
+#include <boost/range/adaptor/reversed.hpp>
+
 #include "iologindata.h"
 #include "configmanager.h"
 #include "game.h"
@@ -368,7 +370,7 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result)
 				g_game.addGuild(guild);
 
 				query.str(std::string());
-				query << "SELECT `id`, `name`, `level` FROM `guild_ranks` WHERE `guild_id` = " << guildId << " LIMIT 3";
+				query << "SELECT `id`, `name`, `level` FROM `guild_ranks` WHERE `guild_id` = " << guildId;
 
 				if ((result = db->storeQuery(query.str()))) {
 					do {
@@ -380,12 +382,22 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result)
 
 		if (guild) {
 			player->guild = guild;
-			GuildRank* rank = guild->getRankById(playerRankId);
-			if (rank) {
-				player->guildLevel = rank->level;
-			} else {
-				player->guildLevel = 1;
+			const GuildRank* rank = guild->getRankById(playerRankId);
+			if (!rank) {
+				query.str(std::string());
+				query << "SELECT `id`, `name`, `level` FROM `guild_ranks` WHERE `id` = " << playerRankId;
+
+				if ((result = db->storeQuery(query.str()))) {
+					guild->addRank(result->getNumber<uint32_t>("id"), result->getString("name"), result->getNumber<uint16_t>("level"));
+				}
+
+				rank = guild->getRankById(playerRankId);
+				if (!rank) {
+					player->guild = nullptr;
+				}
 			}
+
+			player->guildRank = rank;
 
 			IOGuild::getWarList(guildId, player->guildWarList);
 
@@ -476,8 +488,8 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result)
 		for (ItemMap::const_reverse_iterator it = itemMap.rbegin(), end = itemMap.rend(); it != end; ++it) {
 			const std::pair<Item*, int32_t>& pair = it->second;
 			Item* item = pair.first;
-
 			int32_t pid = pair.second;
+
 			if (pid >= 0 && pid < 100) {
 				DepotLocker* depotLocker = player->getDepotLocker(pid);
 				if (depotLocker) {
@@ -485,6 +497,7 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result)
 				}
 			} else {
 				ItemMap::const_iterator it2 = itemMap.find(pid);
+
 				if (it2 == itemMap.end()) {
 					continue;
 				}
@@ -502,7 +515,7 @@ bool IOLoginData::loadPlayer(Player* player, DBResult_ptr result)
 	query << "SELECT `key`, `value` FROM `player_storage` WHERE `player_id` = " << player->getGUID();
 	if ((result = db->storeQuery(query.str()))) {
 		do {
-			player->addStorageValue(result->getNumber<uint32_t>("key"), result->getNumber<int32_t>("value"), true);
+			player->addStorageValue(result->getNumber<uint32_t>("key"), result->getNumber<int32_t>("value"));
 		} while (result->next());
 	}
 
@@ -673,6 +686,7 @@ bool IOLoginData::savePlayer(Player* player)
 	query << "`balance` = " << player->bankBalance << ',';
 	query << "`offlinetraining_time` = " << player->getOfflineTrainingTime() / 1000 << ',';
 	query << "`offlinetraining_skill` = " << player->getOfflineTrainingSkill() << ',';
+
 	query << "`skill_fist` = " << player->skills[SKILL_FIST].level << ',';
 	query << "`skill_fist_tries` = " << player->skills[SKILL_FIST].tries << ',';
 	query << "`skill_club` = " << player->skills[SKILL_CLUB].level << ',';
@@ -767,16 +781,16 @@ bool IOLoginData::savePlayer(Player* player)
 			return false;
 		}
 
-		// save inbox items
+		//save inbox items
 		query.str(std::string());
 		query << "DELETE FROM `player_inboxitems` WHERE `player_id` = " << player->getGUID();
 
 		if (!db->executeQuery(query.str())) {
 			return false;
-		}
+	}
 
-		DBInsert inboxQuery("INSERT INTO `player_inboxitems` (`player_id`, `pid`, `sid`, `itemtype`, `count`, `attributes`) VALUES ");
-		itemList.clear();
+	DBInsert inboxQuery("INSERT INTO `player_inboxitems` (`player_id`, `pid`, `sid`, `itemtype`, `count`, `attributes`) VALUES ");
+	itemList.clear();
 
 		for (const auto& it : player->depotLockerMap) {
 			DepotLocker* depotLocker = it.second;
@@ -937,19 +951,31 @@ std::forward_list<VIPEntry> IOLoginData::getVIPEntries(uint32_t accountId)
 		do {
 			entries.emplace_front(
 				result->getNumber<uint32_t>("player_id"),
-				result->getString("name")
+				result->getString("name"),
+				result->getString("description"),
+				result->getNumber<uint32_t>("icon"),
+				result->getNumber<uint16_t>("notify") != 0
 			);
 		} while (result->next());
 	}
 	return entries;
 }
 
-void IOLoginData::addVIPEntry(uint32_t accountId, uint32_t guid)
+void IOLoginData::addVIPEntry(uint32_t accountId, uint32_t guid, const std::string& description, uint32_t icon, bool notify)
 {
 	Database* db = Database::getInstance();
 
 	std::ostringstream query;
-	query << "INSERT INTO `account_viplist` (`account_id`, `player_id`) VALUES (" << accountId << ',' << guid << ')';
+	query << "INSERT INTO `account_viplist` (`account_id`, `player_id`, `description`, `icon`, `notify`) VALUES (" << accountId << ',' << guid << ',' << db->escapeString(description) << ',' << icon << ',' << notify << ')';
+	db->executeQuery(query.str());
+}
+
+void IOLoginData::editVIPEntry(uint32_t accountId, uint32_t guid, const std::string& description, uint32_t icon, bool notify)
+{
+	Database* db = Database::getInstance();
+
+	std::ostringstream query;
+	query << "UPDATE `account_viplist` SET `description` = " << db->escapeString(description) << ", `icon` = " << icon << ", `notify` = " << notify << " WHERE `account_id` = " << accountId << " AND `player_id` = " << guid;
 	db->executeQuery(query.str());
 }
 

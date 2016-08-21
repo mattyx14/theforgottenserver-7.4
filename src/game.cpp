@@ -301,9 +301,12 @@ Thing* Game::internalGetThing(Player* player, const Position& pos, int32_t index
 			return nullptr;
 		}
 
-		int32_t subType = -1;
-		if (it.isFluidContainer() && index < int32_t(sizeof(reverseFluidMap) / sizeof(int8_t)))
+		int32_t subType;
+		if (it.isFluidContainer() && index < static_cast<int32_t>(sizeof(reverseFluidMap) / sizeof(uint8_t))) {
 			subType = reverseFluidMap[index];
+		} else {
+			subType = -1;
+		}
 
 		return findItemOfType(player, it.id, true, subType);
 	}
@@ -744,6 +747,7 @@ void Game::playerMoveCreature(Player* player, Creature* movingCreature, const Po
 
 ReturnValue Game::internalMoveCreature(Creature* creature, Direction direction, uint32_t flags /*= 0*/)
 {
+	creature->setLastPosition(creature->getPosition());
 	const Position& currentPos = creature->getPosition();
 	Position destPos = getNextPosition(direction, currentPos);
 
@@ -774,6 +778,7 @@ ReturnValue Game::internalMoveCreature(Creature* creature, Direction direction, 
 			}
 		}
 	}
+
 	ReturnValue ret = RETURNVALUE_NOTPOSSIBLE;
 	Tile* toTile = map.getTile(destPos);
 
@@ -1014,7 +1019,7 @@ void Game::playerMoveItem(Player* player, const Position& fromPos,
 		return;
 	}
 
-	if (!g_events->eventPlayerOnMoveItem(player, item, count, fromPos, toPos)) {
+	if (!g_events->eventPlayerOnMoveItem(player, item, count, fromPos, toPos, fromCylinder, toCylinder)) {
 		return;
 	}
 
@@ -1235,7 +1240,7 @@ ReturnValue Game::internalAddItem(Cylinder* toCylinder, Item* item, int32_t inde
 	uint32_t maxQueryCount = 0;
 	ret = destCylinder->queryMaxCount(INDEX_WHEREEVER, *item, item->getItemCount(), maxQueryCount, flags);
 
-	if (ret != RETURNVALUE_NOERROR) {
+	if (ret != RETURNVALUE_NOERROR && toCylinder->getItem()) {
 		return ret;
 	}
 
@@ -1405,7 +1410,7 @@ bool Game::removeMoney(Cylinder* cylinder, uint64_t money, uint32_t flags /*= 0*
 
 	std::vector<Container*> containers;
 
-	std::multimap<uint64_t, Item*> moneyMap;
+	std::multimap<uint32_t, Item*> moneyMap;
 	uint64_t moneyCount = 0;
 
 	for (size_t i = cylinder->getFirstIndex(), j = cylinder->getLastIndex(); i < j; ++i) {
@@ -1782,15 +1787,7 @@ void Game::playerOpenChannel(uint32_t playerId, uint16_t channelId)
 		return;
 	}
 
-	const InvitedMap* invitedUsers = channel->getInvitedUsers();
-	const UsersMap* users;
-	if (!channel->isPublicChannel()) {
-		users = &channel->getUsers();
-	} else {
-		users = nullptr;
-	}
-
-	player->sendChannel(channel->getId(), channel->getName(), users, invitedUsers);
+	player->sendChannel(channel->getId(), channel->getName());
 }
 
 void Game::playerCloseChannel(uint32_t playerId, uint16_t channelId)
@@ -2096,11 +2093,15 @@ void Game::playerMoveUpContainer(uint32_t playerId, uint8_t cid)
 
 	Container* parentContainer = dynamic_cast<Container*>(container->getRealParent());
 	if (!parentContainer) {
-		return;
+		Tile* tile = container->getTile();
+		if (!tile) {
+			return;
+		}
 	}
 
+	bool hasParent = (dynamic_cast<const Container*>(parentContainer->getParent()) != nullptr);
 	player->addContainer(cid, parentContainer);
-	player->sendContainer(cid, parentContainer, parentContainer->hasParent(), player->getContainerIndex(cid));
+	player->sendContainer(cid, parentContainer, hasParent, player->getContainerIndex(cid));
 }
 
 void Game::playerUpdateContainer(uint32_t playerId, uint8_t cid)
@@ -2115,7 +2116,8 @@ void Game::playerUpdateContainer(uint32_t playerId, uint8_t cid)
 		return;
 	}
 
-	player->sendContainer(cid, container, container->hasParent(), player->getContainerIndex(cid));
+	bool hasParent = (dynamic_cast<const Container*>(container->getParent()) != nullptr);
+	player->sendContainer(cid, container, hasParent, player->getContainerIndex(cid));
 }
 
 void Game::playerRotateItem(uint32_t playerId, const Position& pos, uint8_t stackPos, const uint16_t spriteId)
@@ -2228,10 +2230,13 @@ void Game::playerUpdateHouseWindow(uint32_t playerId, uint8_t listId, uint32_t w
 	uint32_t internalListId;
 
 	House* house = player->getEditHouse(internalWindowTextId, internalListId);
-	if (house && internalWindowTextId == windowTextId && listId == 0) {
+	if (house && house->canEditAccessList(internalListId, player) && internalWindowTextId == windowTextId && listId == 0) {
 		house->setAccessList(internalListId, text);
 		player->setEditHouse(nullptr);
+		return;
 	}
+
+	player->setEditHouse(nullptr);
 }
 
 void Game::playerRequestTrade(uint32_t playerId, const Position& pos, uint8_t stackPos,
@@ -2781,7 +2786,7 @@ void Game::playerRequestAddVip(uint32_t playerId, const std::string& name)
 			return;
 		}
 
-		player->addVIP(guid, formattedName, VIPSTATUS_OFFLINE);
+		player->addVIP(guid, formattedName, false);
 	} else {
 		if (vipPlayer->hasFlag(PlayerFlag_SpecialVIP) && !player->hasFlag(PlayerFlag_SpecialVIP)) {
 			player->sendTextMessage(MESSAGE_STATUS_SMALL, "You can not add this player.");
@@ -2789,9 +2794,9 @@ void Game::playerRequestAddVip(uint32_t playerId, const std::string& name)
 		}
 
 		if (!vipPlayer->isInGhostMode() || player->isAccessPlayer()) {
-			player->addVIP(vipPlayer->getGUID(), vipPlayer->getName(), VIPSTATUS_ONLINE);
+			player->addVIP(vipPlayer->getGUID(), vipPlayer->getName(), true);
 		} else {
-			player->addVIP(vipPlayer->getGUID(), vipPlayer->getName(), VIPSTATUS_OFFLINE);
+			player->addVIP(vipPlayer->getGUID(), vipPlayer->getName(), false);
 		}
 	}
 }
@@ -2842,9 +2847,15 @@ void Game::playerChangeOutfit(uint32_t playerId, Outfit_t outfit)
 	}
 
 	Player* player = getPlayerByID(playerId);
-	if (!player || player->isRemoved())
+	if (!player) {
 		return;
+	}
 
+	if (!player->hasRequestedOutfit()) {
+		return;
+	}
+
+	player->hasRequestedOutfit(false);
 	player->defaultOutfit = outfit;
 
 	if (player->hasCondition(CONDITION_OUTFIT)) {
@@ -3364,6 +3375,7 @@ void Game::combatGetTypeInfo(CombatType_t combatType, Creature* target, TextColo
 			effect = CONST_ME_HITBYFIRE;
 			break;
 		}
+
 		case COMBAT_LIFEDRAIN: {
 			color = TEXTCOLOR_RED;
 			effect = CONST_ME_MAGIC_RED;
@@ -3535,7 +3547,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 							message.text = "You lose " + damageString + " mana due to an attack by " + attacker->getNameDescription() + '.';
 						}
 					} else {
-						message.type = MESSAGE_EVENT_DEFAULT;
+						message.type = MESSAGE_STATUS_SMALL;
 						message.text = spectatorMessage;
 					}
 					tmpPlayer->sendTextMessage(message);
@@ -3652,7 +3664,7 @@ bool Game::combatChangeHealth(Creature* attacker, Creature* target, CombatDamage
 						message.text = "You lose " + damageString + " due to an attack by " + attacker->getNameDescription() + '.';
 					}
 				} else {
-					message.type = MESSAGE_EVENT_DEFAULT;
+					message.type = MESSAGE_STATUS_SMALL;
 					// TODO: Avoid copying spectatorMessage everytime we send to a spectator
 					message.text = spectatorMessage;
 				}
@@ -3752,7 +3764,7 @@ bool Game::combatChangeMana(Creature* attacker, Creature* target, int32_t manaCh
 					message.text = "You lose " + damageString + " mana due to an attack by " + attacker->getNameDescription() + '.';
 				}
 			} else {
-				message.type = MESSAGE_EVENT_DEFAULT;
+				message.type = MESSAGE_STATUS_SMALL;
 				message.text = spectatorMessage;
 			}
 			tmpPlayer->sendTextMessage(message);
@@ -3982,6 +3994,9 @@ void Game::resetCommandTag()
 
 void Game::shutdown()
 {
+	std::cout << "Saving game..." << std::flush;
+	saveGameState();
+
 	std::cout << "Shutting down..." << std::flush;
 
 	g_scheduler.shutdown();
@@ -4244,8 +4259,8 @@ void Game::playerInviteToParty(uint32_t playerId, uint32_t invitedId)
 		return;
 	}
 
+	std::ostringstream ss;
 	if (invitedPlayer->getParty()) {
-		std::ostringstream ss;
 		ss << invitedPlayer->getName() << " is already in a party.";
 		player->sendTextMessage(MESSAGE_INFO_DESCR, ss.str());
 		return;
@@ -4573,4 +4588,24 @@ void Game::removeUniqueItem(uint16_t uniqueId)
 	if (it != uniqueItems.end()) {
 		uniqueItems.erase(it);
 	}
+}
+
+bool Game::hasEffect(uint8_t effectId) {
+	for (uint8_t i = CONST_ME_NONE; i <= CONST_ME_LAST; i++) {
+		MagicEffectClasses effect = static_cast<MagicEffectClasses>(i);
+		if (effect == effectId) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool Game::hasDistanceEffect(uint8_t effectId) {
+	for (uint8_t i = CONST_ANI_NONE; i <= CONST_ANI_LAST; i++) {
+		ShootType_t effect = static_cast<ShootType_t>(i);
+		if (effect == effectId) {
+			return true;
+		}
+	}
+	return false;
 }

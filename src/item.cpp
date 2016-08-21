@@ -37,50 +37,44 @@ extern Vocations g_vocations;
 
 Items Item::items;
 
-Item* Item::CreateItem(const uint16_t _type, uint16_t _count /*= 0*/)
+Item* Item::CreateItem(const uint16_t type, uint16_t count /*= 0*/)
 {
 	Item* newItem = nullptr;
 
-	const ItemType& it = Item::items[_type];
+	const ItemType& it = Item::items[type];
 	if (it.group == ITEM_GROUP_DEPRECATED) {
 		return nullptr;
 	}
 
-	if (it.stackable && _count == 0) {
-		_count = 1;
+	if (it.stackable && count == 0) {
+		count = 1;
 	}
 
 	if (it.id != 0) {
 		if (it.isDepot()) {
-			newItem = new DepotLocker(_type);
+			newItem = new DepotLocker(type);
 		} else if (it.isContainer()) {
-			newItem = new Container(_type);
+			newItem = new Container(type);
 		} else if (it.isTeleport()) {
-			newItem = new Teleport(_type);
+			newItem = new Teleport(type);
 		} else if (it.isMagicField()) {
-			newItem = new MagicField(_type);
+			newItem = new MagicField(type);
 		} else if (it.isDoor()) {
-			newItem = new Door(_type);
+			newItem = new Door(type);
 		} else if (it.isTrashHolder()) {
-			newItem = new TrashHolder(_type);
+			newItem = new TrashHolder(type);
 		} else if (it.isMailbox()) {
-			newItem = new Mailbox(_type);
+			newItem = new Mailbox(type);
 		} else if (it.isBed()) {
-			newItem = new BedItem(_type);
+			newItem = new BedItem(type);
 		} else if (it.id >= 2210 && it.id <= 2212) {
-			newItem = new Item(_type - 3, _count);
+			newItem = new Item(type - 3, count);
 		} else if (it.id == 2215 || it.id == 2216) {
-			newItem = new Item(_type - 2, _count);
+			newItem = new Item(type - 2, count);
 		} else if (it.id >= 2202 && it.id <= 2206) {
-			newItem = new Item(_type - 37, _count);
-		} else if (it.id == 2640) {
-			newItem = new Item(6132, _count);
-		} else if (it.id == 6301) {
-			newItem = new Item(6300, _count);
-		} else if (it.id == 18528) {
-			newItem = new Item(18408, _count);
+			newItem = new Item(type - 37, count);
 		} else {
-			newItem = new Item(_type, _count);
+			newItem = new Item(type, count);
 		}
 
 		newItem->incrementReferenceCounter();
@@ -89,67 +83,75 @@ Item* Item::CreateItem(const uint16_t _type, uint16_t _count /*= 0*/)
 	return newItem;
 }
 
-Container* Item::CreateItemAsContainer(const uint16_t _type, uint16_t _size)
+Container* Item::CreateItemAsContainer(const uint16_t type, uint16_t size)
 {
-	const ItemType& it = Item::items[_type];
+	const ItemType& it = Item::items[type];
 	if (it.id == 0 || it.group == ITEM_GROUP_DEPRECATED || it.stackable || it.useable || it.moveable || it.pickupable || it.isDepot() || it.isSplash() || it.isDoor()) {
 		return nullptr;
 	}
 
-	Container* newItem = new Container(_type, _size);
+	Container* newItem = new Container(type, size);
 	newItem->incrementReferenceCounter();
 	return newItem;
 }
 
 Item* Item::CreateItem(PropStream& propStream)
 {
-	uint16_t _id;
-	if (!propStream.read<uint16_t>(_id)) {
+	uint16_t id;
+	if (!propStream.read<uint16_t>(id)) {
 		return nullptr;
 	}
 
-	switch (_id) {
+	switch (id) {
 		case ITEM_FIREFIELD_PVP_FULL:
-			_id = ITEM_FIREFIELD_PERSISTENT_FULL;
+			id = ITEM_FIREFIELD_PERSISTENT_FULL;
 			break;
 
 		case ITEM_FIREFIELD_PVP_MEDIUM:
-			_id = ITEM_FIREFIELD_PERSISTENT_MEDIUM;
+			id = ITEM_FIREFIELD_PERSISTENT_MEDIUM;
 			break;
 
 		case ITEM_FIREFIELD_PVP_SMALL:
-			_id = ITEM_FIREFIELD_PERSISTENT_SMALL;
+			id = ITEM_FIREFIELD_PERSISTENT_SMALL;
 			break;
 
 		case ITEM_ENERGYFIELD_PVP:
-			_id = ITEM_ENERGYFIELD_PERSISTENT;
+			id = ITEM_ENERGYFIELD_PERSISTENT;
 			break;
 
 		case ITEM_POISONFIELD_PVP:
-			_id = ITEM_POISONFIELD_PERSISTENT;
+			id = ITEM_POISONFIELD_PERSISTENT;
 			break;
 
 		case ITEM_MAGICWALL:
-			_id = ITEM_MAGICWALL_PERSISTENT;
+			id = ITEM_MAGICWALL_PERSISTENT;
 			break;
 
 		case ITEM_WILDGROWTH:
-			_id = ITEM_WILDGROWTH_PERSISTENT;
+			id = ITEM_WILDGROWTH_PERSISTENT;
 			break;
 
 		default:
 			break;
 	}
 
-	return Item::CreateItem(_id, 0);
+	const ItemType& iType = Item::items[id];
+	uint8_t count = 0;
+
+	if (iType.stackable || iType.isSplash() || iType.isFluidContainer()) {
+		if (!propStream.read<uint8_t>(count)) {
+			return nullptr;
+		}
+	}
+	return Item::CreateItem(id, count);
 }
 
-Item::Item(const uint16_t _type, uint16_t _count /*= 0*/)
+Item::Item(const uint16_t type, uint16_t count /*= 0*/)
 {
 	parent = nullptr;
 	referenceCounter = 0;
 
-	id = _type;
+	id = type;
 	attributes = nullptr;
 
 	const ItemType& it = items[id];
@@ -157,16 +159,16 @@ Item::Item(const uint16_t _type, uint16_t _count /*= 0*/)
 	setItemCount(1);
 
 	if (it.isFluidContainer() || it.isSplash()) {
-		setFluidType(_count);
+		setFluidType(count);
 	} else if (it.stackable) {
-		if (_count != 0) {
-			setItemCount(_count);
+		if (count != 0) {
+			setItemCount(count);
 		} else if (it.charges != 0) {
 			setItemCount(it.charges);
 		}
 	} else if (it.charges != 0) {
-		if (_count != 0) {
-			setCharges(_count);
+		if (count != 0) {
+			setCharges(count);
 		} else {
 			setCharges(it.charges);
 		}
@@ -195,11 +197,11 @@ Item::Item(const Item& i) :
 
 Item* Item::clone() const
 {
-	Item* _item = Item::CreateItem(id, count);
+	Item* item = Item::CreateItem(id, count);
 	if (attributes) {
-		_item->attributes = new ItemAttributes(*attributes);
+		item->attributes = new ItemAttributes(*attributes);
 	}
-	return _item;
+	return item;
 }
 
 Item::~Item()
@@ -329,7 +331,7 @@ Tile* Item::getTile()
 {
 	Cylinder* cylinder = getTopParent();
 	//get root cylinder
-	if (cylinder->getParent()) {
+	if (cylinder && cylinder->getParent()) {
 		cylinder = cylinder->getParent();
 	}
 	return dynamic_cast<Tile*>(cylinder);
@@ -339,7 +341,7 @@ const Tile* Item::getTile() const
 {
 	const Cylinder* cylinder = getTopParent();
 	//get root cylinder
-	if (cylinder->getParent()) {
+	if (cylinder && cylinder->getParent()) {
 		cylinder = cylinder->getParent();
 	}
 	return dynamic_cast<const Tile*>(cylinder);
@@ -390,12 +392,12 @@ Attr_ReadValue Item::readAttr(AttrTypes_t attr, PropStream& propStream)
 	switch (attr) {
 		case ATTR_COUNT:
 		case ATTR_RUNE_CHARGES: {
-			uint8_t _count;
-			if (!propStream.read<uint8_t>(_count)) {
+			uint8_t count;
+			if (!propStream.read<uint8_t>(count)) {
 				return ATTR_READ_ERROR;
 			}
 
-			setSubType(_count);
+			setSubType(count);
 			break;
 		}
 
@@ -816,7 +818,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance,
 
 	if (it.isRune()) {
 		if (!it.runeSpellName.empty()) {
-			s << " (\"" << it.runeSpellName << "\")";
+			s << " (\"" << it.runeSpellName << "\") " << subType << "x";
 		}
 
 		if (it.runeLevel > 0 || it.runeMagLevel > 0) {
@@ -1260,7 +1262,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance,
 				} else {
 					s << "unknown";
 				}
-			} else if (it.allowDistRead && (it.id < 7369 || it.id > 7371)) {
+			} else if (it.allowDistRead) {
 				s << '.' << std::endl;
 
 				if (lookDistance <= 4) {
@@ -1297,7 +1299,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance,
 		}
 	}
 
-	if (it.showCharges) {
+	if(it.showCharges && !it.isRune()) {
 		s << " that has " << subType << " charge" << (subType != 1 ? "s" : "") << " left";
 	}
 
@@ -1338,7 +1340,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance,
 		}
 	}
 
-	if (!it.allowDistRead || (it.id >= 7369 && it.id <= 7371)) {
+	if (!it.allowDistRead) {
 		s << '.';
 	} else {
 		if (!text && item) {
@@ -1402,7 +1404,7 @@ std::string Item::getDescription(const ItemType& it, int32_t lookDistance,
 		s << std::endl << it.description;
 	}
 
-	if (it.allowDistRead && it.id >= 7369 && it.id <= 7371) {
+	if (it.allowDistRead) {
 		if (!text && item) {
 			text = &item->getText();
 		}
@@ -1458,10 +1460,10 @@ std::string Item::getNameDescription() const
 	return getNameDescription(it, this);
 }
 
-std::string Item::getWeightDescription(const ItemType& it, uint32_t weight, uint32_t _count /*= 1*/)
+std::string Item::getWeightDescription(const ItemType& it, uint32_t weight, uint32_t count /*= 1*/)
 {
 	std::ostringstream ss;
-	if (it.stackable && _count > 1 && it.showCount != 0) {
+	if (it.stackable && count > 1 && it.showCount != 0) {
 		ss << "They weigh ";
 	} else {
 		ss << "It weighs ";

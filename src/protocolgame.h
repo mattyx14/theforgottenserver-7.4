@@ -79,7 +79,7 @@ class ProtocolGame final : public Protocol
 
 	private:
 		ProtocolGame_ptr getThis() {
-			return std::dynamic_pointer_cast<ProtocolGame>(shared_from_this());
+			return std::static_pointer_cast<ProtocolGame>(shared_from_this());
 		}
 		void connect(uint32_t playerId, OperatingSystem_t operatingSystem);
 		void disconnectClient(const std::string& message) const;
@@ -148,12 +148,11 @@ class ProtocolGame final : public Protocol
 		void sendClosePrivate(uint16_t channelId);
 		void sendCreatePrivateChannel(uint16_t channelId, const std::string& channelName);
 		void sendChannelsDialog();
-		void sendChannel(uint16_t channelId, const std::string& channelName, const UsersMap* channelUsers, const InvitedMap* invitedUsers);
+		void sendChannel(uint16_t channelId, const std::string& channelName);
 		void sendOpenPrivateChannel(const std::string& receiver);
 		void sendToChannel(const Creature* creature, SpeakClasses type, const std::string& text, uint16_t channelId);
 		void sendPrivateMessage(const Player* speaker, SpeakClasses type, const std::string& text);
 		void sendIcons(uint16_t icons);
-		void sendFYIBox(const std::string& message);
 
 		void sendDistanceShoot(const Position& from, const Position& to, uint8_t type);
 		void sendMagicEffect(const Position& pos, uint8_t type);
@@ -169,10 +168,7 @@ class ProtocolGame final : public Protocol
 		void sendCreatureVisible(const Creature* creature, bool visible);
 		void sendCreatureOutfit(const Creature* creature, const Outfit_t& outfit);
 		void sendStats();
-		void sendTextMessage(MessageClasses mclass, const std::string& message);
 		void sendTextMessage(const TextMessage& message);
-
-		void sendAddMarker(const Position& pos, uint8_t markType, const std::string& desc);
 
 		void sendCreatureShield(const Creature* creature);
 		void sendCreatureSkull(const Creature* creature);
@@ -185,8 +181,8 @@ class ProtocolGame final : public Protocol
 		void sendHouseWindow(uint32_t windowTextId, const std::string& text);
 		void sendOutfitWindow();
 
-		void sendUpdatedVIPStatus(uint32_t guid, VipStatus_t newStatus);
-		void sendVIP(uint32_t guid, const std::string& name, VipStatus_t status);
+		void sendUpdatedVIPStatus(uint32_t guid, bool online);
+		void sendVIP(uint32_t guid, const std::string& name, bool isOnline);
 
 		void sendFightModes();
 
@@ -220,8 +216,6 @@ class ProtocolGame final : public Protocol
 
 		//messages
 		void sendAnimatedText(const std::string& message, const Position& pos, TextColor_t color);
-
-		//Help functions
 
 		// translate a tile to clientreadable format
 		void GetTileDescription(const Tile* tile, NetworkMessage& msg);

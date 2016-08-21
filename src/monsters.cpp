@@ -121,7 +121,7 @@ void MonsterType::createLoot(Container* corpse)
 	}
 
 	Player* owner = g_game.getPlayerByID(corpse->getCorpseOwner());
-	if(!owner) {
+	if (owner) {
 		for (auto it = lootItems.rbegin(), end = lootItems.rend(); it != end; ++it) {
 			auto itemList = createLootItem(*it);
 			if (itemList.empty()) {
@@ -143,7 +143,7 @@ void MonsterType::createLoot(Container* corpse)
 			}
 		}
 
-		if (owner) {
+		if (owner && g_config.getBoolean(ConfigManager::LOOT_MESSAGE)) {
 			std::ostringstream ss;
 			ss << "Loot of " << nameDescription << ": " << corpse->getContentDescription();
 
@@ -153,9 +153,9 @@ void MonsterType::createLoot(Container* corpse)
 				owner->sendTextMessage(MESSAGE_INFO_DESCR, ss.str());
 			}
 		}
-	} else {
+	} else if(owner && g_config.getBoolean(ConfigManager::LOOT_MESSAGE)) {
 		std::ostringstream ss;
-		ss << "Loot of " << nameDescription << ": nothing";
+		ss << "Loot of " << nameDescription << ": Nothing.";
 
 		if (owner->getParty()) {
 			owner->getParty()->broadcastPartyLoot(ss.str());
@@ -1032,6 +1032,7 @@ bool Monsters::loadMonster(const std::string& file, const std::string& monsterNa
 		for (auto summonNode : node.children()) {
 			int32_t chance = 100;
 			int32_t speed = 1000;
+			bool force = false;
 
 			if ((attr = summonNode.attribute("speed")) || (attr = summonNode.attribute("interval"))) {
 				speed = pugi::cast<int32_t>(attr.value());
@@ -1041,11 +1042,16 @@ bool Monsters::loadMonster(const std::string& file, const std::string& monsterNa
 				chance = pugi::cast<int32_t>(attr.value());
 			}
 
+			if ((attr = summonNode.attribute("force"))) {
+				force = attr.as_bool();
+			}
+
 			if ((attr = summonNode.attribute("name"))) {
 				summonBlock_t sb;
 				sb.name = attr.as_string();
 				sb.speed = speed;
 				sb.chance = chance;
+				sb.force = force;
 				mType->summons.emplace_back(sb);
 			} else {
 				std::cout << "[Warning - Monsters::loadMonster] Missing summon name. " << file << std::endl;

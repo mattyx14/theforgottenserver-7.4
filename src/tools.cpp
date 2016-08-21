@@ -487,7 +487,7 @@ struct SkullNames {
 MagicEffectNames magicEffectNames[] = {
 	{"redspark",		CONST_ME_DRAWBLOOD},
 	{"bluebubble",		CONST_ME_LOSEENERGY},
-	{"poff",			CONST_ME_POFF},
+	{"poff",		CONST_ME_POFF},
 	{"yellowspark",		CONST_ME_BLOCKHIT},
 	{"explosionarea",	CONST_ME_EXPLOSIONAREA},
 	{"explosion",		CONST_ME_EXPLOSIONHIT},
@@ -496,16 +496,17 @@ MagicEffectNames magicEffectNames[] = {
 	{"greenbubble",		CONST_ME_GREEN_RINGS},
 	{"blackspark",		CONST_ME_HITAREA},
 	{"teleport",		CONST_ME_TELEPORT},
-	{"energy",			CONST_ME_ENERGYHIT},
+	{"energyarea",		CONST_ME_TELEPORT},
+	{"energy",		CONST_ME_ENERGYHIT},
 	{"blueshimmer",		CONST_ME_MAGIC_BLUE},
 	{"redshimmer",		CONST_ME_MAGIC_RED},
 	{"greenshimmer",	CONST_ME_MAGIC_GREEN},
-	{"fire",			CONST_ME_HITBYFIRE},
+	{"fire",		CONST_ME_HITBYFIRE},
 	{"greenspark",		CONST_ME_HITBYPOISON},
 	{"mortarea",		CONST_ME_MORTAREA},
 	{"greennote",		CONST_ME_SOUND_GREEN},
-	{"rednote",			CONST_ME_SOUND_RED},
-	{"poison",			CONST_ME_POISONAREA},
+	{"rednote",		CONST_ME_SOUND_RED},
+	{"poison",		CONST_ME_POISONAREA},
 	{"yellownote",		CONST_ME_SOUND_YELLOW},
 	{"purplenote",		CONST_ME_SOUND_PURPLE},
 	{"bluenote",		CONST_ME_SOUND_BLUE},
@@ -513,38 +514,40 @@ MagicEffectNames magicEffectNames[] = {
 };
 
 ShootTypeNames shootTypeNames[] = {
-	{"spear",			CONST_ANI_SPEAR},
-	{"bolt",			CONST_ANI_BOLT},
-	{"arrow",			CONST_ANI_ARROW},
-	{"fire",			CONST_ANI_FIRE},
-	{"energy",			CONST_ANI_ENERGY},
+	{"spear",		CONST_ANI_SPEAR},
+	{"bolt",		CONST_ANI_BOLT},
+	{"arrow",		CONST_ANI_ARROW},
+	{"fire",		CONST_ANI_FIRE},
+	{"energy",		CONST_ANI_ENERGY},
 	{"poisonarrow",		CONST_ANI_POISONARROW},
 	{"burstarrow",		CONST_ANI_BURSTARROW},
 	{"throwingstar",	CONST_ANI_THROWINGSTAR},
 	{"throwingknife",	CONST_ANI_THROWINGKNIFE},
 	{"smallstone",		CONST_ANI_SMALLSTONE},
-	{"death",			CONST_ANI_DEATH},
+	{"death",		CONST_ANI_DEATH},
+	{"suddendeath",		CONST_ANI_DEATH},
 	{"largerock",		CONST_ANI_LARGEROCK},
 	{"snowball",		CONST_ANI_SNOWBALL},
 	{"powerbolt",		CONST_ANI_POWERBOLT},
-	{"poison",			CONST_ANI_POISON},
+	{"poison",		CONST_ANI_POISON},
 };
 
 CombatTypeNames combatTypeNames[] = {
 	{"physical",		COMBAT_PHYSICALDAMAGE},
-	{"energy",			COMBAT_ENERGYDAMAGE},
-	{"earth",			COMBAT_EARTHDAMAGE},
-	{"fire",			COMBAT_FIREDAMAGE},
+	{"energy",		COMBAT_ENERGYDAMAGE},
+	{"earth",		COMBAT_EARTHDAMAGE},
+	{"poison",		COMBAT_EARTHDAMAGE},
+	{"fire",		COMBAT_FIREDAMAGE},
 	{"undefined",		COMBAT_UNDEFINEDDAMAGE},
 	{"lifedrain",		COMBAT_LIFEDRAIN},
 	{"manadrain",		COMBAT_MANADRAIN},
-	{"healing",			COMBAT_HEALING},
+	{"healing",		COMBAT_HEALING},
 };
 
 AmmoTypeNames ammoTypeNames[] = {
-	{"spear",			AMMO_SPEAR},
-	{"bolt",			AMMO_BOLT},
-	{"arrow",			AMMO_ARROW},
+	{"spear",		AMMO_SPEAR},
+	{"bolt",		AMMO_BOLT},
+	{"arrow",		AMMO_ARROW},
 	{"poisonarrow",		AMMO_ARROW},
 	{"burstarrow",		AMMO_ARROW},
 	{"throwingstar",	AMMO_THROWINGSTAR},
@@ -556,17 +559,17 @@ AmmoTypeNames ammoTypeNames[] = {
 };
 
 WeaponActionNames weaponActionNames[] = {
-	{"move",			WEAPONACTION_MOVE},
+	{"move",		WEAPONACTION_MOVE},
 	{"removecharge",	WEAPONACTION_REMOVECHARGE},
 	{"removecount",		WEAPONACTION_REMOVECOUNT},
 };
 
 SkullNames skullNames[] = {
-	{"none",			SKULL_NONE},
-	{"yellow",			SKULL_YELLOW},
-	{"green",			SKULL_GREEN},
-	{"white",			SKULL_WHITE},
-	{"red",				SKULL_RED},
+	{"none",	SKULL_NONE},
+	{"yellow",	SKULL_YELLOW},
+	{"green",	SKULL_GREEN},
+	{"white",	SKULL_WHITE},
+	{"red",		SKULL_RED},
 };
 
 MagicEffectClasses getMagicEffect(const std::string& strValue)

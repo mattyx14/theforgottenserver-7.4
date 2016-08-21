@@ -352,13 +352,13 @@ ReturnValue Combat::canDoCombat(Creature* attacker, Creature* target)
 	return g_events->eventCreatureOnTargetCombat(attacker, target);
 }
 
-void Combat::setPlayerCombatValues(formulaType_t _type, double _mina, double _minb, double _maxa, double _maxb)
+void Combat::setPlayerCombatValues(formulaType_t formulaType, double mina, double minb, double maxa, double maxb)
 {
-	formulaType = _type;
-	mina = _mina;
-	minb = _minb;
-	maxa = _maxa;
-	maxb = _maxb;
+	this->formulaType = formulaType;
+	this->mina = mina;
+	this->minb = minb;
+	this->maxa = maxa;
+	this->maxb = maxb;
 }
 
 bool Combat::setParam(CombatParam_t param, uint32_t value)
@@ -576,15 +576,13 @@ void Combat::combatTileEffects(const SpectatorVec& list, Creature* caster, Tile*
 					if (itemId == ITEM_FIREFIELD_PVP_FULL) {
 						itemId = ITEM_FIREFIELD_NOPVP;
 					} else if (itemId == ITEM_POISONFIELD_PVP) {
-itemId = ITEM_POISONFIELD_NOPVP;
+						itemId = ITEM_POISONFIELD_NOPVP;
+					} else if (itemId == ITEM_ENERGYFIELD_PVP) {
+						itemId = ITEM_ENERGYFIELD_NOPVP;
 					}
- else if (itemId == ITEM_ENERGYFIELD_PVP) {
-	 itemId = ITEM_ENERGYFIELD_NOPVP;
- }
+				} else if (itemId == ITEM_FIREFIELD_PVP_FULL || itemId == ITEM_POISONFIELD_PVP || itemId == ITEM_ENERGYFIELD_PVP) {
+					casterPlayer->addInFightTicks();
 				}
- else if (itemId == ITEM_FIREFIELD_PVP_FULL || itemId == ITEM_POISONFIELD_PVP || itemId == ITEM_ENERGYFIELD_PVP) {
-	 casterPlayer->addInFightTicks();
- }
 			}
 		}
 
@@ -596,8 +594,7 @@ itemId = ITEM_POISONFIELD_NOPVP;
 		ReturnValue ret = g_game.internalAddItem(tile, item);
 		if (ret == RETURNVALUE_NOERROR) {
 			g_game.startDecay(item);
-		}
-		else {
+		} else {
 			delete item;
 		}
 	}
@@ -621,17 +618,22 @@ void Combat::postCombatEffects(Creature* caster, const Position& pos, const Comb
 void Combat::addDistanceEffect(Creature* caster, const Position& fromPos, const Position& toPos, uint8_t effect)
 {
 	if (effect == CONST_ANI_WEAPONTYPE) {
-		if (!caster) {
-			return;
-		}
-
 		Player* player = caster->getPlayer();
 		if (!player) {
 			return;
 		}
+
+		switch (player->getWeaponType()) {
+			case WEAPON_NONE:
+				effect = CONST_ANI_LARGEROCK;
+				break;
+			default:
+				effect = CONST_ANI_NONE;
+				break;
+		}
 	}
 
-	if (effect != CONST_ANI_NONE) {
+	if (caster && effect != CONST_ANI_NONE) {
 		g_game.addDistanceEffect(fromPos, toPos, effect);
 	}
 }
@@ -642,8 +644,7 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 
 	if (caster) {
 		getCombatArea(caster->getPosition(), pos, area, tileList);
-	}
-	else {
+	} else {
 		getCombatArea(pos, pos, area, tileList);
 	}
 
@@ -670,7 +671,7 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 	const int32_t rangeY = maxY + Map::maxViewportY;
 	g_game.map.getSpectators(list, pos, true, true, rangeX, rangeX, rangeY, rangeY);
 
-	bool bContinue = true;
+	bool Second_Continue = true;
 
 	for (Tile* tile : tileList) {
 		if (canDoCombat(caster, tile, params.aggressive) != RETURNVALUE_NOERROR) {
@@ -683,14 +684,14 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 					if (!g_config.getBoolean(ConfigManager::UH_TRAP) &&
 						(caster && caster->getTile() == tile)){
 						if (creature == caster) {
-							bContinue = false;
+							Second_Continue = false;
 						}
 					}
 					else if (creature == tile->getBottomCreature()) {
-						bContinue = false;
+						Second_Continue = false;
 					}
 
-					if (bContinue) {
+					if (Second_Continue) {
 						continue;
 					}
 				}

@@ -25,21 +25,16 @@
 
 extern Game g_game;
 
-Container::Container(uint16_t _type) : Item(_type)
-{
-	maxSize = items[_type].maxItems;
-	totalWeight = 0;
-	serializationCount = 0;
-	unlocked = true;
-}
+Container::Container(uint16_t type) :
+	Container(type, items[type].maxItems) {}
 
-Container::Container(uint16_t _type, uint16_t _size) : Item(_type)
-{
-	maxSize = _size;
-	totalWeight = 0;
-	serializationCount = 0;
-	unlocked = true;
-}
+Container::Container(uint16_t type, uint16_t size, bool unlocked /*= true*/) :
+	Item(type),
+	maxSize(size),
+	totalWeight(0),
+	serializationCount(0),
+	unlocked(unlocked)
+{}
 
 Container::~Container()
 {
@@ -66,11 +61,6 @@ Container* Container::getParentContainer()
 		return nullptr;
 	}
 	return thing->getContainer();
-}
-
-bool Container::hasParent() const
-{
-	return dynamic_cast<const Container*>(getParent()) != nullptr;
 }
 
 void Container::addItem(Item* item)
@@ -420,7 +410,7 @@ Cylinder* Container::queryDestination(int32_t& index, const Thing &thing, Item**
 		return this;
 	}
 
-	bool autoStack = !hasBitSet(FLAG_IGNOREAUTOSTACK, flags);
+	bool autoStack = (g_config.getBoolean(ConfigManager::AUTO_STACK_ITEMS) && !hasBitSet(FLAG_IGNOREAUTOSTACK, flags));
 	if (autoStack && item->isStackable() && item->getParent() != this) {
 		//try find a suitable item to stack with
 		uint32_t n = 0;

@@ -64,8 +64,6 @@ enum CreatureType_t : uint8_t {
 	CREATURETYPE_PLAYER = 0,
 	CREATURETYPE_MONSTER = 1,
 	CREATURETYPE_NPC = 2,
-	CREATURETYPE_SUMMON_OWN = 3,
-	CREATURETYPE_SUMMON_OTHERS = 4,
 };
 
 enum OperatingSystem_t : uint8_t {
@@ -239,13 +237,14 @@ enum ConditionType_t {
 	CONDITION_EXHAUST_WEAPON = 1 << 12, // unused
 	CONDITION_REGENERATION = 1 << 13,
 	CONDITION_SOUL = 1 << 14,
-	CONDITION_MUTED = 1 << 15,
-	CONDITION_CHANNELMUTEDTICKS = 1 << 16,
-	CONDITION_YELLTICKS = 1 << 17,
-	CONDITION_ATTRIBUTES = 1 << 18,
-	CONDITION_EXHAUST_COMBAT = 1 << 19, // unused
-	CONDITION_EXHAUST_HEAL = 1 << 20, // unused
-	CONDITION_PACIFIED = 1 << 21,
+	// CONDITION_DROWN = 1 << 15,
+	CONDITION_MUTED = 1 << 16,
+	CONDITION_CHANNELMUTEDTICKS = 1 << 17,
+	CONDITION_YELLTICKS = 1 << 18,
+	CONDITION_ATTRIBUTES = 1 << 19,
+	CONDITION_EXHAUST_COMBAT = 1 << 20, // unused
+	CONDITION_EXHAUST_HEAL = 1 << 21, // unused
+	CONDITION_PACIFIED = 1 << 22,
 };
 
 enum ConditionId_t : int8_t {
@@ -340,30 +339,6 @@ enum ReturnValue {
 	RETURNVALUE_YOUARENOTTHEOWNER,
 };
 
-enum MapMark_t
-{
-	MAPMARK_TICK = 0,
-	MAPMARK_QUESTION = 1,
-	MAPMARK_EXCLAMATION = 2,
-	MAPMARK_STAR = 3,
-	MAPMARK_CROSS = 4,
-	MAPMARK_TEMPLE = 5,
-	MAPMARK_KISS = 6,
-	MAPMARK_SHOVEL = 7,
-	MAPMARK_SWORD = 8,
-	MAPMARK_FLAG = 9,
-	MAPMARK_LOCK = 10,
-	MAPMARK_BAG = 11,
-	MAPMARK_SKULL = 12,
-	MAPMARK_DOLLAR = 13,
-	MAPMARK_REDNORTH = 14,
-	MAPMARK_REDSOUTH = 15,
-	MAPMARK_REDEAST = 16,
-	MAPMARK_REDWEST = 17,
-	MAPMARK_GREENNORTH = 18,
-	MAPMARK_GREENSOUTH = 19,
-};
-
 struct Outfit_t {
 	Outfit_t() {
 		reset();
@@ -387,16 +362,10 @@ struct Outfit_t {
 };
 
 struct LightInfo {
-	uint8_t level;
-	uint8_t color;
-	LightInfo() {
-		level = 0;
-		color = 0;
-	}
-	LightInfo(uint8_t _level, uint8_t _color) {
-		level = _level;
-		color = _color;
-	}
+	uint8_t level = 0;
+	uint8_t color = 0;
+	LightInfo() = default;
+	LightInfo(uint8_t level, uint8_t color) : level(level), color(color) {}
 };
 
 enum CombatOrigin

@@ -48,9 +48,9 @@ enum stackPosType_t {
 };
 
 enum WorldType_t {
-	WORLD_TYPE_NO_PVP = 1,
-	WORLD_TYPE_PVP = 2,
-	WORLD_TYPE_PVP_ENFORCED = 3,
+	WORLD_TYPE_NO_PVP = 1, // optional pvp
+	WORLD_TYPE_PVP = 2, // open pvp
+	WORLD_TYPE_PVP_ENFORCED = 3, // hardcore pvp
 };
 
 enum GameState_t {
@@ -338,7 +338,6 @@ class Game
 		void playerOpenChannel(uint32_t playerId, uint16_t channelId);
 		void playerCloseChannel(uint32_t playerId, uint16_t channelId);
 		void playerOpenPrivateChannel(uint32_t playerId, std::string& receiver);
-		void playerCloseNpcChannel(uint32_t playerId);
 		void playerReceivePing(uint32_t playerId);
 		void playerAutoWalk(uint32_t playerId, const std::forward_list<Direction>& listDir);
 		void playerStopAutoWalk(uint32_t playerId);
@@ -467,6 +466,9 @@ class Game
 		Item* getUniqueItem(uint16_t uniqueId);
 		bool addUniqueItem(uint16_t uniqueId, Item* item);
 		void removeUniqueItem(uint16_t uniqueId);
+
+		bool hasEffect(uint8_t effectId);
+		bool hasDistanceEffect(uint8_t effectId);
 
 		Groups groups;
 		Map map;

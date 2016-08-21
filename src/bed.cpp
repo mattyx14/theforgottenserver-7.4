@@ -160,6 +160,9 @@ bool BedItem::sleep(Player* player)
 	// make the player walk onto the bed
 	g_game.map.moveCreature(*player, *getTile());
 
+	// display 'Zzzz'/sleep effect
+	g_game.addMagicEffect(player->getPosition(), CONST_ME_POFF);
+
 	// kick player after he sees himself walk onto the bed and it change id
 	uint32_t playerId = player->getID();
 	g_scheduler.addEvent(createSchedulerTask(SCHEDULER_MINTICKS, std::bind(&Game::kickPlayer, &g_game, playerId, false)));

@@ -752,7 +752,7 @@ Outfit_t LuaScriptInterface::getOutfit(lua_State* L, int32_t arg)
 	outfit.lookTypeEx = getField<uint16_t>(L, arg, "lookTypeEx");
 	outfit.lookType = getField<uint16_t>(L, arg, "lookType");
 
-	lua_pop(L, 7);
+	lua_pop(L, 6);
 	return outfit;
 }
 
@@ -879,7 +879,7 @@ void LuaScriptInterface::pushPosition(lua_State* L, const Position& position, in
 
 void LuaScriptInterface::pushOutfit(lua_State* L, const Outfit_t& outfit)
 {
-	lua_createtable(L, 0, 7);
+	lua_createtable(L, 0, 6);
 	setField(L, "lookType", outfit.lookType);
 	setField(L, "lookTypeEx", outfit.lookTypeEx);
 	setField(L, "lookHead", outfit.lookHead);
@@ -1264,8 +1264,6 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(CREATURETYPE_PLAYER)
 	registerEnum(CREATURETYPE_MONSTER)
 	registerEnum(CREATURETYPE_NPC)
-	registerEnum(CREATURETYPE_SUMMON_OWN)
-	registerEnum(CREATURETYPE_SUMMON_OTHERS)
 
 	registerEnum(CLIENTOS_LINUX)
 	registerEnum(CLIENTOS_WINDOWS)
@@ -1500,28 +1498,6 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(GUEST_LIST)
 	registerEnum(SUBOWNER_LIST)
 
-	// Use with player:addMapMark
-	registerEnum(MAPMARK_TICK)
-	registerEnum(MAPMARK_QUESTION)
-	registerEnum(MAPMARK_EXCLAMATION)
-	registerEnum(MAPMARK_STAR)
-	registerEnum(MAPMARK_CROSS)
-	registerEnum(MAPMARK_TEMPLE)
-	registerEnum(MAPMARK_KISS)
-	registerEnum(MAPMARK_SHOVEL)
-	registerEnum(MAPMARK_SWORD)
-	registerEnum(MAPMARK_FLAG)
-	registerEnum(MAPMARK_LOCK)
-	registerEnum(MAPMARK_BAG)
-	registerEnum(MAPMARK_SKULL)
-	registerEnum(MAPMARK_DOLLAR)
-	registerEnum(MAPMARK_REDNORTH)
-	registerEnum(MAPMARK_REDSOUTH)
-	registerEnum(MAPMARK_REDEAST)
-	registerEnum(MAPMARK_REDWEST)
-	registerEnum(MAPMARK_GREENNORTH)
-	registerEnum(MAPMARK_GREENSOUTH)
-
 	// Use with Game.getReturnMessage
 	registerEnum(RETURNVALUE_NOERROR)
 	registerEnum(RETURNVALUE_NOTPOSSIBLE)
@@ -1610,6 +1586,10 @@ void LuaScriptInterface::registerFunctions()
 	registerEnumIn("configKeys", ConfigManager::WARN_UNSAFE_SCRIPTS)
 	registerEnumIn("configKeys", ConfigManager::CONVERT_UNSAFE_SCRIPTS)
 	registerEnumIn("configKeys", ConfigManager::CLASSIC_EQUIPMENT_SLOTS)
+	registerEnumIn("configKeys", ConfigManager::ALLOW_BLOCK_SPAWN)
+	registerEnumIn("configKeys", ConfigManager::AUTO_STACK_ITEMS)
+	registerEnumIn("configKeys", ConfigManager::SUMMONS_DROP_CORPSE)
+	registerEnumIn("configKeys", ConfigManager::LOOT_MESSAGE)
 	registerEnumIn("configKeys", ConfigManager::UH_TRAP)
 	registerEnumIn("configKeys", ConfigManager::HEIGHT_STACK_BLOCK)
 
@@ -1695,6 +1675,9 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Game", "createTile", LuaScriptInterface::luaGameCreateTile);
 
 	registerMethod("Game", "startRaid", LuaScriptInterface::luaGameStartRaid);
+
+	registerMethod("Game", "hasDistanceEffect", LuaScriptInterface::luaGameHasDistanceEffect);
+	registerMethod("Game", "hasEffect", LuaScriptInterface::luaGameHasEffect);
 
 	registerMethod("Game", "sendAnimatedText", LuaScriptInterface::luaGameSendAnimatedText);
 
@@ -1903,6 +1886,9 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Creature", "setMaxHealth", LuaScriptInterface::luaCreatureSetMaxHealth);
 	registerMethod("Creature", "setHiddenHealth", LuaScriptInterface::luaCreatureSetHiddenHealth);
 
+	registerMethod("Creature", "isMoveLocked", LuaScriptInterface::luaCreatureIsMoveLocked);
+	registerMethod("Creature", "setMoveLocked", LuaScriptInterface::luaCreatureSetMoveLocked);
+
 	registerMethod("Creature", "getMana", LuaScriptInterface::luaCreatureGetMana);
 	registerMethod("Creature", "addMana", LuaScriptInterface::luaCreatureAddMana);
 	registerMethod("Creature", "getMaxMana", LuaScriptInterface::luaCreatureGetMaxMana);
@@ -2050,10 +2036,7 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Player", "forgetSpell", LuaScriptInterface::luaPlayerForgetSpell);
 	registerMethod("Player", "hasLearnedSpell", LuaScriptInterface::luaPlayerHasLearnedSpell);
 
-	registerMethod("Player", "addMapMark", LuaScriptInterface::luaPlayerAddMapMark);
-
 	registerMethod("Player", "save", LuaScriptInterface::luaPlayerSave);
-	registerMethod("Player", "popupFYI", LuaScriptInterface::luaPlayerPopupFYI);
 
 	registerMethod("Player", "isPzLocked", LuaScriptInterface::luaPlayerIsPzLocked);
 
@@ -4257,6 +4240,22 @@ int LuaScriptInterface::luaGameSendAnimatedText(lua_State* L)
 
 	g_game.addAnimatedText(message, position, color);
 	pushBoolean(L, true);
+	return 1;
+}
+
+int LuaScriptInterface::luaGameHasEffect(lua_State* L)
+{
+	// Game.hasEffect(effectId)
+	uint8_t effectId = getNumber<uint8_t>(L, 1);
+	pushBoolean(L, g_game.hasEffect(effectId));
+	return 1;
+}
+
+int LuaScriptInterface::luaGameHasDistanceEffect(lua_State* L)
+{
+	// Game.hasDistanceEffect(effectId)
+	uint8_t effectId = getNumber<uint8_t>(L, 1);
+	pushBoolean(L, g_game.hasDistanceEffect(effectId));
 	return 1;
 }
 
@@ -6677,6 +6676,32 @@ int LuaScriptInterface::luaCreatureSetHiddenHealth(lua_State* L)
 	return 1;
 }
 
+int LuaScriptInterface::luaCreatureIsMoveLocked(lua_State* L)
+{
+	// creature:isMoveLocked()
+	const Creature* creature = getUserdata<const Creature>(L, 1);
+	if (creature) {
+		pushBoolean(L, creature->isMoveLocked());
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+int LuaScriptInterface::luaCreatureSetMoveLocked(lua_State* L)
+{
+	// creature:setMoveLocked(moveLocked)
+	Creature* creature = getUserdata<Creature>(L, 1);
+	if (creature) {
+		creature->setMoveLocked(getBoolean(L, 2));
+		pushBoolean(L, true);
+	} else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
+
 int LuaScriptInterface::luaCreatureGetMana(lua_State* L)
 {
 	// creature:getMana()
@@ -7708,8 +7733,8 @@ int LuaScriptInterface::luaPlayerGetGuildLevel(lua_State* L)
 {
 	// player:getGuildLevel()
 	Player* player = getUserdata<Player>(L, 1);
-	if (player) {
-		lua_pushnumber(L, player->getGuildLevel());
+	if (player && player->getGuild()) {
+		lua_pushnumber(L, player->getGuildRank()->level);
 	} else {
 		lua_pushnil(L);
 	}
@@ -7721,12 +7746,19 @@ int LuaScriptInterface::luaPlayerSetGuildLevel(lua_State* L)
 	// player:setGuildLevel(level)
 	uint8_t level = getNumber<uint8_t>(L, 2);
 	Player* player = getUserdata<Player>(L, 1);
-	if (player) {
-		player->setGuildLevel(level);
-		pushBoolean(L, true);
-	} else {
+	if (!player || !player->getGuild()) {
 		lua_pushnil(L);
+		return 1;
 	}
+
+	const GuildRank* rank = player->getGuild()->getRankByLevel(level);
+	if (!rank) {
+		pushBoolean(L, false);
+	} else {
+		player->setGuildRank(rank);
+		pushBoolean(L, true);
+	}
+
 	return 1;
 }
 
@@ -8459,22 +8491,6 @@ int LuaScriptInterface::luaPlayerHasLearnedSpell(lua_State* L)
 	return 1;
 }
 
-int LuaScriptInterface::luaPlayerAddMapMark(lua_State* L)
-{
-	// player:addMapMark(position, type, description)
-	Player* player = getUserdata<Player>(L, 1);
-	if (player) {
-		const Position& position = getPosition(L, 2);
-		uint8_t type = getNumber<uint8_t>(L, 3);
-		const std::string& description = getString(L, 4);
-		player->sendAddMarker(position, type, description);
-		pushBoolean(L, true);
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
 int LuaScriptInterface::luaPlayerSave(lua_State* L)
 {
 	// player:save()
@@ -8482,20 +8498,6 @@ int LuaScriptInterface::luaPlayerSave(lua_State* L)
 	if (player) {
 		player->loginPosition = player->getPosition();
 		pushBoolean(L, IOLoginData::savePlayer(player));
-	} else {
-		lua_pushnil(L);
-	}
-	return 1;
-}
-
-int LuaScriptInterface::luaPlayerPopupFYI(lua_State* L)
-{
-	// player:popupFYI(message)
-	Player* player = getUserdata<Player>(L, 1);
-	if (player) {
-		const std::string& message = getString(L, 2);
-		player->sendFYIBox(message);
-		pushBoolean(L, true);
 	} else {
 		lua_pushnil(L);
 	}
@@ -8585,14 +8587,14 @@ int LuaScriptInterface::luaPlayerSetGhostMode(lua_State* L)
 	if (player->isInGhostMode()) {
 		for (const auto& it : g_game.getPlayers()) {
 			if (!it.second->isAccessPlayer()) {
-				it.second->notifyStatusChange(player, VIPSTATUS_OFFLINE);
+				it.second->notifyStatusChange(player, false);
 			}
 		}
 		IOLoginData::updateOnlineStatus(player->getGUID(), false);
 	} else {
 		for (const auto& it : g_game.getPlayers()) {
 			if (!it.second->isAccessPlayer()) {
-				it.second->notifyStatusChange(player, VIPSTATUS_ONLINE);
+				it.second->notifyStatusChange(player, true);
 			}
 		}
 		IOLoginData::updateOnlineStatus(player->getGUID(), true);

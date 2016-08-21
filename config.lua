@@ -57,6 +57,7 @@ mysqlSock = ""
 passwordType = "sha1"
 
 -- Misc.
+-- heightStackBlock : Can walk/push over 2 items with height attribute (Parcels, boxes etc.)
 allowChangeOutfit = true
 freePremium = false
 kickIdlePlayerAfterMinutes = 15
@@ -64,8 +65,10 @@ maxMessageBuffer = 4
 emoteSpells = false
 classicEquipmentSlots = false
 UHTrap = true
--- Can walk/push over 2 items with height attribute (Parcels, boxes etc.)
 heightStackBlock = true
+autoStackItems = false
+summonsDropCorpse = true
+displayLootMessage = false
 
 -- Rates
 -- NOTE: rateExp is not used if you have enabled stages in data/XML/stages.xml

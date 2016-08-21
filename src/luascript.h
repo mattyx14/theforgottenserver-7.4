@@ -555,7 +555,11 @@ class LuaScriptInterface
 		static int luaGameCreateTile(lua_State* L);
 
 		static int luaGameStartRaid(lua_State* L);
+
 		static int luaGameSendAnimatedText(lua_State* L);
+
+		static int luaGameHasEffect(lua_State* L);
+		static int luaGameHasDistanceEffect(lua_State* L);
 
 		// Variant
 		static int luaVariantCreate(lua_State* L);
@@ -755,6 +759,9 @@ class LuaScriptInterface
 		static int luaCreatureSetMaxHealth(lua_State* L);
 		static int luaCreatureSetHiddenHealth(lua_State* L);
 
+		static int luaCreatureIsMoveLocked(lua_State* L);
+		static int luaCreatureSetMoveLocked(lua_State* L);
+
 		static int luaCreatureGetMana(lua_State* L);
 		static int luaCreatureAddMana(lua_State* L);
 		static int luaCreatureGetMaxMana(lua_State* L);
@@ -902,10 +909,7 @@ class LuaScriptInterface
 		static int luaPlayerForgetSpell(lua_State* L);
 		static int luaPlayerHasLearnedSpell(lua_State* L);
 
-		static int luaPlayerAddMapMark(lua_State* L);
-
 		static int luaPlayerSave(lua_State* L);
-		static int luaPlayerPopupFYI(lua_State* L);
 
 		static int luaPlayerIsPzLocked(lua_State* L);
 

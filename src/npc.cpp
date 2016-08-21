@@ -36,10 +36,11 @@ NpcScriptInterface* Npc::scriptInterface = nullptr;
 
 void Npcs::reload()
 {
+	const std::map<uint32_t, Npc*>& npcs = g_game.getNpcs();
+
 	delete Npc::scriptInterface;
 	Npc::scriptInterface = nullptr;
 
-	const std::map<uint32_t, Npc*>& npcs = g_game.getNpcs();
 	for (const auto& it : npcs) {
 		it.second->reload();
 	}
@@ -54,14 +55,13 @@ Npc* Npc::createNpc(const std::string& name)
 	return npc.release();
 }
 
-Npc::Npc(const std::string& _name) :
-	Creature(), filename("data/npc/" + _name + ".xml")
+Npc::Npc(const std::string& name) :
+	Creature(),
+	filename("data/npc/" + name + ".xml"),
+	npcEventHandler(nullptr),
+	masterRadius(-1),
+	loaded(false)
 {
-	loaded = false;
-
-	masterRadius = -1;
-
-	npcEventHandler = nullptr;
 	reset();
 }
 

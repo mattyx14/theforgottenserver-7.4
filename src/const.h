@@ -50,6 +50,8 @@ enum MagicEffectClasses : uint8_t {
 	CONST_ME_SOUND_PURPLE = 23,
 	CONST_ME_SOUND_BLUE = 24,
 	CONST_ME_SOUND_WHITE = 25,
+
+	CONST_ME_LAST = CONST_ME_SOUND_WHITE,
 };
 
 enum ShootType_t : uint8_t {
@@ -70,6 +72,8 @@ enum ShootType_t : uint8_t {
 	CONST_ANI_SNOWBALL = 13,
 	CONST_ANI_POWERBOLT = 14,
 	CONST_ANI_POISON = 15,
+
+	CONST_ANI_LAST = CONST_ANI_POISON,
 
 	// for internal use, don't send to client
 	CONST_ANI_WEAPONTYPE = 0xFE, // 254
@@ -107,8 +111,7 @@ enum MessageClasses : uint8_t {
 	MESSAGE_STATUS_CONSOLE_RED = 25, /*Red message in the console*/
 };
 
-enum FluidColors_t
-{
+enum FluidColors_t : uint8_t {
 	FLUID_EMPTY = 0,
 	FLUID_BLUE = 1,
 	FLUID_RED = 2,
@@ -119,8 +122,7 @@ enum FluidColors_t
 	FLUID_PURPLE = 7
 };
 
-enum FluidTypes_t
-{
+enum FluidTypes_t : uint8_t {
 	FLUID_NONE = FLUID_EMPTY,
 	FLUID_WATER = FLUID_BLUE,
 	FLUID_BLOOD = FLUID_RED,
@@ -144,11 +146,11 @@ enum FluidTypes_t
 	FLUID_SWAMP = FLUID_GREEN + 24,
 
 	FLUID_TEA = FLUID_BROWN + 32,
-	FLUID_MEAD = FLUID_BROWN + 40
+
+	FLUID_MEAD = FLUID_BROWN + 40,
 };
 
-const uint8_t reverseFluidMap[] =
-{
+const uint8_t reverseFluidMap[] = {
 	FLUID_EMPTY,
 	FLUID_WATER,
 	FLUID_MANA,
@@ -158,11 +160,10 @@ const uint8_t reverseFluidMap[] =
 	FLUID_SLIME,
 	FLUID_EMPTY,
 	FLUID_LEMONADE,
-	FLUID_MILK
+	FLUID_MILK,
 };
 
-const uint8_t clientToServerFluidMap[] =
-{
+const uint8_t clientToServerFluidMap[] = {
 	FLUID_EMPTY,
 	FLUID_WATER,
 	FLUID_MANA,
@@ -180,11 +181,10 @@ const uint8_t clientToServerFluidMap[] =
 	FLUID_FRUITJUICE,
 	FLUID_COCONUTMILK,
 	FLUID_TEA,
-	FLUID_MEAD
+	FLUID_MEAD,
 };
 
-enum ClientFluidTypes_t
-{
+enum ClientFluidTypes_t : uint8_t {
 	CLIENTFLUID_EMPTY = 0,
 	CLIENTFLUID_BLUE = 1,
 	CLIENTFLUID_PURPLE = 2,
@@ -195,8 +195,7 @@ enum ClientFluidTypes_t
 	CLIENTFLUID_BROWN = 7
 };
 
-const uint8_t fluidMap[] =
-{
+const uint8_t fluidMap[] = {
 	CLIENTFLUID_EMPTY,
 	CLIENTFLUID_BLUE,
 	CLIENTFLUID_PURPLE,
@@ -309,11 +308,11 @@ enum item_t : uint16_t {
 
 	ITEM_MAGICWALL = 1497,
 	ITEM_MAGICWALL_PERSISTENT = 1498,
-	ITEM_MAGICWALL_SAFE = 1497,
+	ITEM_MAGICWALL_SAFE = ITEM_MAGICWALL,
 
 	ITEM_WILDGROWTH = 1499,
 	ITEM_WILDGROWTH_PERSISTENT = 2721,
-	ITEM_WILDGROWTH_SAFE = 1499,
+	ITEM_WILDGROWTH_SAFE = ITEM_WILDGROWTH,
 
 	ITEM_BAG = 1987,
 

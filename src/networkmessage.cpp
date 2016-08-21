@@ -126,8 +126,14 @@ void NetworkMessage::addItem(const Item* item)
 	if (it.stackable) {
 		addByte(std::min<uint16_t>(0xFF, item->getItemCount()));
 	} else if (it.isSplash() || it.isFluidContainer()) {
-		addByte(fluidMap[item->getSubType() % 8]);
+		addByte(fluidMap[item->getFluidType() % 8]);
 	}
+}
+
+void NetworkMessage::addItemId(const Item* item)
+{
+	const ItemType& it = Item::items[item->getID()];
+	add<uint16_t>(it.clientId);
 }
 
 void NetworkMessage::addItemId(uint16_t itemId)

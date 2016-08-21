@@ -49,9 +49,9 @@ class ContainerIterator
 class Container : public Item, public Cylinder
 {
 	public:
-		explicit Container(uint16_t _type);
-		Container(uint16_t _type, uint16_t _size);
-		explicit Container(Tile* tile);
+		explicit Container(uint16_t type);
+		Container(uint16_t type, uint16_t size, bool unlocked = true);
+		explicit Container(Tile* type);
 		~Container();
 
 		// non-copyable
@@ -101,7 +101,6 @@ class Container : public Item, public Cylinder
 			return itemlist.rend();
 		}
 
-		bool hasParent() const;
 		void addItem(Item* item);
 		Item* getItemByIndex(size_t index) const;
 		bool isHoldingItem(const Item* item) const;

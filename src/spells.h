@@ -87,7 +87,7 @@ class BaseSpell
 class CombatSpell final : public Event, public BaseSpell
 {
 	public:
-		CombatSpell(Combat* _combat, bool _needTarget, bool _needDirection);
+		CombatSpell(Combat* combat, bool needTarget, bool needDirection);
 		~CombatSpell();
 
 		// non-copyable
@@ -145,6 +145,9 @@ class Spell : public BaseSpell
 		uint32_t getManaPercent() const {
 			return manaPercent;
 		}
+		uint32_t getLevelPercent() const {
+			return levelPercent;
+		}
 		bool isPremium() const {
 			return premium;
 		}
@@ -167,10 +170,9 @@ class Spell : public BaseSpell
 		bool playerInstantSpellCheck(Player* player, const Position& toPos);
 		bool playerRuneSpellCheck(Player* player, const Position& toPos);
 
-		uint8_t spellId;
-
 		uint32_t mana;
 		uint32_t manaPercent;
+		uint32_t levelPercent;
 		uint32_t soul;
 		uint32_t cooldown;
 		uint32_t level;
@@ -196,7 +198,7 @@ class Spell : public BaseSpell
 class InstantSpell : public TalkAction, public Spell
 {
 	public:
-		explicit InstantSpell(LuaScriptInterface* _interface);
+		explicit InstantSpell(LuaScriptInterface* interface);
 
 		bool configureEvent(const pugi::xml_node& node) override;
 		bool loadFunction(const pugi::xml_attribute& attr) override;
@@ -249,7 +251,7 @@ class InstantSpell : public TalkAction, public Spell
 class ConjureSpell final : public InstantSpell
 {
 	public:
-		explicit ConjureSpell(LuaScriptInterface* _interface);
+		explicit ConjureSpell(LuaScriptInterface* interface);
 
 		bool configureEvent(const pugi::xml_node& node) final;
 		bool loadFunction(const pugi::xml_attribute& attr) final;
@@ -278,7 +280,7 @@ class ConjureSpell final : public InstantSpell
 class RuneSpell final : public Action, public Spell
 {
 	public:
-		explicit RuneSpell(LuaScriptInterface* _interface);
+		explicit RuneSpell(LuaScriptInterface* interface);
 
 		bool configureEvent(const pugi::xml_node& node) final;
 		bool loadFunction(const pugi::xml_attribute& attr) final;

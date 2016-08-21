@@ -145,8 +145,8 @@ int32_t Weapons::getMaxWeaponDamage(uint32_t level, int32_t attackSkill, int32_t
 	return static_cast<int32_t>(std::ceil((2 * (attackValue * (attackSkill + 5.8) / 25 + (level - 1) / 10.)) / attackFactor));
 }
 
-Weapon::Weapon(LuaScriptInterface* _interface) :
-	Event(_interface)
+Weapon::Weapon(LuaScriptInterface* interface) :
+	Event(interface)
 {
 	scripted = false;
 	id = 0;
@@ -158,8 +158,12 @@ Weapon::Weapon(LuaScriptInterface* _interface) :
 	premium = false;
 	enabled = true;
 	wieldUnproperly = false;
+	swing = false;
 	breakChance = 0;
 	action = WEAPONACTION_NONE;
+	params.blockedByArmor = true;
+	params.blockedByShield = true;
+	params.combatType = COMBAT_PHYSICALDAMAGE;
 }
 
 bool Weapon::configureEvent(const pugi::xml_node& node)
@@ -212,6 +216,10 @@ bool Weapon::configureEvent(const pugi::xml_node& node)
 
 	if ((attr = node.attribute("unproperly"))) {
 		wieldUnproperly = attr.as_bool();
+	}
+
+	if ((attr = node.attribute("swing"))) {
+		swing = attr.as_bool();
 	}
 
 	std::list<std::string> vocStringList;
@@ -509,8 +517,8 @@ void Weapon::decrementItemCount(Item* item)
 	}
 }
 
-WeaponMelee::WeaponMelee(LuaScriptInterface* _interface) :
-	Weapon(_interface), elementType(COMBAT_NONE), elementDamage(0)
+WeaponMelee::WeaponMelee(LuaScriptInterface* interface) :
+	Weapon(interface), elementType(COMBAT_NONE), elementDamage(0)
 {
 	params.blockedByArmor = true;
 	params.blockedByShield = true;
@@ -602,11 +610,12 @@ int32_t WeaponMelee::getWeaponDamage(const Player* player, const Creature*, cons
 	return -normal_random(0, maxValue);
 }
 
-WeaponDistance::WeaponDistance(LuaScriptInterface* _interface) :
-	Weapon(_interface), elementType(COMBAT_NONE), elementDamage(0)
+WeaponDistance::WeaponDistance(LuaScriptInterface* interface) :
+	Weapon(interface), elementType(COMBAT_NONE), elementDamage(0)
 {
 	params.blockedByArmor = true;
 	params.combatType = COMBAT_PHYSICALDAMAGE;
+	swing = params.blockedByShield = false;
 }
 
 void WeaponDistance::configureWeapon(const ItemType& it)
@@ -874,8 +883,8 @@ bool WeaponDistance::getSkillType(const Player* player, const Item*, skills_t& s
 	return true;
 }
 
-WeaponWand::WeaponWand(LuaScriptInterface* _interface) :
-	Weapon(_interface)
+WeaponWand::WeaponWand(LuaScriptInterface* interface) :
+	Weapon(interface)
 {
 	minChange = 0;
 	maxChange = 0;
@@ -898,7 +907,7 @@ bool WeaponWand::configureEvent(const pugi::xml_node& node)
 
 	if ((attr = node.attribute("type"))) {
 		std::string tmpStrValue = asLowerCaseString(attr.as_string());
-		if (tmpStrValue == "earth") {
+		if (tmpStrValue == "earth" || tmpStrValue == "poison") {
 			params.combatType = COMBAT_EARTHDAMAGE;
 		} else if (tmpStrValue == "energy") {
 			params.combatType = COMBAT_ENERGYDAMAGE;
