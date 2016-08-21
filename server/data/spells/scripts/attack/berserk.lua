@@ -1,18 +1,27 @@
-local combat = Combat()
-combat:setParameter(COMBAT_PARAM_TYPE, COMBAT_PHYSICALDAMAGE)
-combat:setParameter(COMBAT_PARAM_EFFECT, CONST_ME_HITAREA)
-combat:setParameter(COMBAT_PARAM_BLOCKARMOR, true)
-combat:setParameter(COMBAT_PARAM_USECHARGES, true)
-combat:setArea(createCombatArea(AREA_SQUARE1X1))
+local combat = createCombatObject()
+setCombatParam(combat, COMBAT_PARAM_TYPE, COMBAT_PHYSICALDAMAGE)
+setCombatParam(combat, COMBAT_PARAM_EFFECT, CONST_ME_HITAREA)
 
-function onGetFormulaValues(player, skill, attack, factor)
-	local min = (player:getLevel() / 5) + (skill * attack * 0.03) + 7
-	local max = (player:getLevel() / 5) + (skill * attack * 0.05) + 11
-	return -min, -max
+local area = createCombatArea(AREA_SQUARE1X1)
+setCombatArea(combat, area)
+
+function onGetFormulaValues(cid, level, maglevel)
+	min = -(level * 2.2)
+	max = -(level * 3.85)
+--	min = -((level * 2) + (maglevel * 3)) * 1.4
+--	max = -((level * 2) + (maglevel * 3)) * 1.65
+	return min, max
 end
 
-combat:setCallback(CALLBACK_PARAM_SKILLVALUE, "onGetFormulaValues")
+setCombatCallback(combat, CALLBACK_PARAM_LEVELMAGICVALUE, "onGetFormulaValues")
 
-function onCastSpell(creature, variant)
-	return combat:execute(creature, variant)
+function onCastSpell(cid, var)
+	-- check for stairHop delay
+	if not getCreatureCondition(cid, CONDITION_PACIFIED) then
+		return doCombat(cid, combat, var)
+	else
+		cid:sendCancelMessage(RETURNVALUE_YOUAREEXHAUSTED)
+		cid:getPosition():sendMagicEffect(CONST_ME_POFF)
+		return false
+	end
 end
