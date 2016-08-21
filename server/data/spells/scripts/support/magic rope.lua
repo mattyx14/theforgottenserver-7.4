@@ -1,7 +1,7 @@
-function onCastSpell(creature, variant)
+function onCastSpell(creature, var)
 	local position = creature:getPosition()
 	position:sendMagicEffect(CONST_ME_POFF)
-
+	
 	local tile = Tile(position)
 	if isInArray(ropeSpots, tile:getGround():getId()) or tile:getItemById(14435) then
 		tile = Tile(position:moveUpstairs())
@@ -13,6 +13,7 @@ function onCastSpell(creature, variant)
 		end
 	else
 		creature:sendCancelMessage(RETURNVALUE_NOTPOSSIBLE)
+		return false
 	end
 	return true
 end

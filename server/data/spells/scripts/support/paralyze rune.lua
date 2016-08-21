@@ -6,8 +6,8 @@ condition:setParameter(CONDITION_PARAM_TICKS, 20000)
 condition:setFormula(-0.9, 0, -0.9, 0)
 combat:setCondition(condition)
 
-function onCastSpell(creature, variant)
-	if not combat:execute(creature, variant) then
+function onCastSpell(creature, var)
+	if not combat:execute(creature, var) then
 		return false
 	end
 
