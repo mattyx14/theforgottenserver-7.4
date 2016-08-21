@@ -932,7 +932,7 @@ void Monster::onThinkDefense(uint32_t interval)
 		}
 	}
 
-	if (!isSummon() && summons.size() < mType->maxSummons) {
+	if (attackedCreature && !isSummon() && summons.size() < mType->maxSummons) {
 		for (const summonBlock_t& summonBlock : mType->summons) {
 			if (summonBlock.speed > defenseTicks) {
 				resetTicks = false;
