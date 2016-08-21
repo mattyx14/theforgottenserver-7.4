@@ -678,7 +678,6 @@ void Combat::CombatFunc(Creature* caster, const Position& pos, const AreaCombat*
 		}
 
 		if (CreatureVector* creatures = tile->getCreatures()) {
-			const Creature* topCreature = tile->getTopCreature();
 			for (Creature* creature : *creatures) {
 				if (params.targetCasterOrTopMost) {
 					if (!g_config.getBoolean(ConfigManager::UH_TRAP) &&
