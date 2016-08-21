@@ -42,6 +42,7 @@ class ConfigManager
 			CONVERT_UNSAFE_SCRIPTS,
 			CLASSIC_EQUIPMENT_SLOTS,
 			UH_TRAP,
+			HEIGHT_STACK_BLOCK,
 
 			LAST_BOOLEAN_CONFIG /* this must be the last one */
 		};

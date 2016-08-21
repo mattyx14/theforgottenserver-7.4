@@ -64,6 +64,8 @@ maxMessageBuffer = 4
 emoteSpells = false
 classicEquipmentSlots = false
 UHTrap = true
+-- Can walk/push over 2 items with height attribute (Parcels, boxes etc.)
+heightStackBlock = true
 
 -- Rates
 -- NOTE: rateExp is not used if you have enabled stages in data/XML/stages.xml

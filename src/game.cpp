@@ -673,7 +673,7 @@ void Game::playerMoveCreature(Player* player, Creature* movingCreature, const Po
 
 	player->setNextActionTask(nullptr);
 
-	if (toTile->getHeight() > 1) {
+	if (g_config.getBoolean(ConfigManager::HEIGHT_STACK_BLOCK) && toTile->getHeight() > 1) {
 		return;
 	}
 
